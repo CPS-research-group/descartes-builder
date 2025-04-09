@@ -1,0 +1,9 @@
+[submodule "app/external/googletest"]
+	path = app/external/googletest
+	url = https://github.com/google/googletest.git
+[submodule "app/external/quazip"]
+	path = app/external/quazip
+	url = https://github.com/stachenov/quazip.git
+[submodule "app/external/qtnodes"]
+	path = app/external/qtnodes
+	url = git@github.com:CPS-research-group/nodeeditor.git

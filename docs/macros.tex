@@ -1,0 +1,72 @@
+
+%%% MATH MACROS %%%
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+
+
+%%% FDF MACROS %%%
+
+% typical graph has vertices (V) and edges (E) w/ 
+% the edges a pair (src, dest) connecting two vertices
+
+% SEMANTICS
+% what the user really declares is:
+% - the boxes;
+% - the label/type of box
+% - the edge feeding its port
+
+% the output port that is 
+%% Sets => all in mathcal
+\newcommand{\FDpipe}{\ensuremath{P}}
+\newcommand{\FDboxes}{\ensuremath{\mathcal{B}}}
+\newcommand{\FDports}{\ensuremath{\mathcal{P}}}
+\newcommand{\FDedges}{\ensuremath{\mathcal{E}}}
+%\newcommand{\FDparams}{\ensuremath{\Pi}}
+\newcommand{\Library}{\ensuremath{\mathcal{L}}}
+
+%% Elems
+\newcommand{\FDbox}{b}
+\newcommand{\FDport}{p}
+\newcommand{\FDedge}{e}
+\newcommand{\FDlabel}{l}
+%% Funcs
+%\newcommand{\FDboxLabel}{BL} % Box -> Label
+%\newcommand{\FDboxPort}{BP} % Box -> Port
+
+\newcommand{\FDboxType}{\ensuremath{boxclass}} % Box -> Type 
+\newcommand{\FDportType}{\ensuremath{portclass}} % Port -> Type (i.e., Data or Function)
+\newcommand{\FDportBox}{\ensuremath{box}} % Port -> Box
+\newcommand{\FDinPoutP}{\ensuremath{src}} % InPort -> OutPort
+\newcommand{\FDboxParam}{\ensuremath{param}} % Box -> Param 
+% PS: Param carries a "pointer" for a fixed function as well as 
+% other metadata (implicit type, etc.) required to execute it in FDF.
+
+\newcommand{\FDdatatag}{Dtag} % Data Port => Tag
+\newcommand{\FDfunctag}{Ftag} % Function Port => Tag
+\newcommand{\FDportName}{Pname} % Port => Name
+\newcommand{\FDnames}{N}
+\newcommand{\FDname}{n}
+
+
+% SYNTAX
+%% Funcs
+\newcommand{\FDedgelabel}{EL}
+\newcommand{\FDportLabel}{PL}
+
+
+% TYPING
+\newcommand{\type}{\text{type}}
+\newcommand{\typeset}{\mathcal{D}}
+\newcommand{\functypeset}{\mathcal{F}}
+\newcommand{\default}{\text{default}}
+
+\newcommand{\OP}{output port}
+\newcommand{\IP}{input port}
+
+\newcommand{\DP}{data port}
+\newcommand{\IDP}{input data port}
+\newcommand{\ODP}{output data port}
+
+\newcommand{\FP}{function port}
+\newcommand{\IFP}{input function port}
+\newcommand{\OFP}{output function port}

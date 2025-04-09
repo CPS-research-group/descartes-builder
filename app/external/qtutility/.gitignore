@@ -1,0 +1,9 @@
+*.pyc
+CMakeLists.txt.user
+
+build*/
+.vscode/
+
+tags
+
+.DS_Store
