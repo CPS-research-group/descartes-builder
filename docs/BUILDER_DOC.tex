@@ -1,0 +1,47 @@
+\documentclass{article}
+% utf-8 encoding for ASCII symbols
+\usepackage[utf8]{inputenc} 
+% for handling images
+\usepackage{graphicx}       
+% for math symbols
+\usepackage{amsmath,amsfonts,amssymb}        
+\usepackage{algorithm,algpseudocode}
+\usepackage{microtype}
+\usepackage{longtable}
+\usepackage{fancyvrb}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{tikz}
+
+% use the biblatex package
+\usepackage[
+backend=biber,
+style=numeric,
+giveninits=true,
+maxnames=1,
+sortcites]{biblatex}
+\addbibresource{cite.bib}
+% small font for refs.
+\renewcommand*{\bibfont}{\small}
+
+\graphicspath{{img/}}
+% allow to type " and get latex to handle it
+\usepackage[autostyle=false, style=english]{csquotes}
+\MakeOuterQuote{"}
+
+
+\input{macros.tex}
+%\input{img/tikz_setup.tikz}
+\newcommand{\Builder}{\textsc{DesCartes Builder}}
+
+\begin{document}
+
+\input{boxes.tex}
+
+\input{developer.tex}
+
+\printbibliography[
+  heading=bibintoc,
+  title={References}
+]
+\end{document}

@@ -1,0 +1,82 @@
+name: build descartes-builder
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: ["main"]
+
+jobs:
+  build:
+    if: github.event.pull_request.draft == false
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        build_type:
+          - Release
+        qt_version:
+          - "6.4.0"
+        include:
+          - os: ubuntu-latest
+            compiler: gcc
+          - os: macos-latest
+            compiler: clang
+          - os: windows-latest
+            compiler: msvc
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qt_version }}
+          modules: 'qt5compat'
+          cache: 'true'
+
+      - name: Setup (Ubuntu)
+        if: startsWith (matrix.os, 'ubuntu')
+        run: sudo apt-get install libxkbcommon-dev libgl1-mesa-dev
+
+      - name: Setup VS tools (Windows)
+        if: startsWith (matrix.os, 'windows')
+        uses: egor-tensin/vs-shell@v2
+        with:
+          arch: x64
+
+      - name: Setup (Windows)
+        if: startsWith (matrix.os, 'windows')
+        run: |
+          & $env:VCPKG_INSTALLATION_ROOT\vcpkg install zlib bzip2
+
+      - name: Configure CMake
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: |
+          cmake -B build \
+          -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -S ${{ github.workspace }}/app
+
+      - name: Configure CMake (Windows)
+        if: startsWith(matrix.os, 'windows')
+        run: |
+          cmake -B build `
+          -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} `
+          -D CMAKE_TOOLCHAIN_FILE=$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake `
+          -S ${{ github.workspace }}/app
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }}
+
+      - name: Test
+        working-directory: ${{ steps.strings.outputs.build-output-dir }}
+        run: ctest --build-config ${{ matrix.build_type }}

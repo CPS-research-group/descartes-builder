@@ -1,0 +1,85 @@
+\section{Developer Documentation}
+
+The core of the software depends on the \texttt{QtNodes} (placeholder/nodeeditor) library which handles the node, graph, connection, and UI logic. This software extends it to support directed acyclic graphs and further logical restrictions.
+
+The backbone of the software is the execution engine which runs on Python. Kedro is a data science framework which this software will translate the graph to. Communication between the C++ software and Python is handled through \texttt{QProcess}.
+
+The codebase is roughly divided into \texttt{app} and \texttt{docs} folders:
+\begin{itemize}
+    \item \texttt{docs} holds documentation for both users and developers.
+    \item \texttt{app} is structured as follows:
+    \begin{itemize}
+        \item \texttt{external}
+        \begin{itemize}
+            \item \texttt{googletest}
+            \item \texttt{QtNodes}
+            \item \texttt{quazip}
+            \item \texttt{qtutility}
+        \end{itemize}
+        \item \texttt{include}
+        \begin{itemize}
+            \item \texttt{data}
+            \item \texttt{engine}
+            \item \texttt{ui}
+        \end{itemize}
+        \item \texttt{resources}
+        \item \texttt{scripts}
+        \item \texttt{src}
+        \begin{itemize}
+            \item \texttt{data}
+            \item \texttt{engine}
+            \item \texttt{ui}
+        \end{itemize}
+        \item \texttt{tests}
+        \item \texttt{build}
+    \end{itemize}
+\end{itemize}
+
+In the Builder application, custom blocks are created based on the QtNodes library. These blocks are categorized as \textbf{Processor}, \textbf{Coder}, \textbf{Trainer}, and \textbf{I/O} models. Each node can have multiple input and output ports, which are classified as either \textbf{data ports} or \textbf{function ports}.
+
+Since the application is used to create logical ML pipelines via the UI, it enforces checks on connections between nodes to ensure validity. Each data port is assigned a \textbf{unique ID (UID)}. Multiple ports can share the same UID, indicating they represent the same type of data. Different UIDs imply semantically different data types. For example, an original dataset \texttt{X} might have a UID of 2, while its PCA-transformed version might have UID 3.
+
+All operations related to UID assignment, overriding, and consistency are handled by the \texttt{UIDManager}. The \texttt{src/data} folder includes:
+\begin{itemize}
+    \item \texttt{tab\_manager}: manages multiple tabs, each representing a separate pipeline.
+    \item \texttt{custom\_graph}: maintains the graph state for each tab.
+    \item \texttt{UIDManager}: handles type assignments and UID logic.
+    \item \texttt{block\_manager}: manages unique node/port captions and other graph-level constraints.
+\end{itemize}
+
+The \texttt{src/engine} folder contains logic to interact with the Kedro execution backend. This includes generating the necessary pipeline and catalog YAML files and invoking Kedro runs.
+
+The \texttt{src/ui} folder manages all UI components. In particular:
+\begin{itemize}
+    \item The \texttt{models/} subfolder defines FDF blocks (i.e., custom Qt nodes). These include:
+    \begin{itemize}
+        \item Port definitions (input/output)
+        \item Node operations
+        \item Behavior on data/function port connections
+        \item UID assignment when new ports are added  
+    \end{itemize}
+    \item The \texttt{side\_bar\_widgets/} and other UI files handle configuration options and Qt styling.
+    \item The UI allows changing implicit types of ports and assigning annotations, both of which are reflected visually in the node editor.
+\end{itemize}
+
+Additional key files include:
+\begin{itemize}
+    \item \texttt{log\_manager}: handles internal logging and file system logs.
+\end{itemize}
+
+\subsection*{Source Folder Responsibilities}
+
+\begin{longtable}{|l|p{10cm}|}
+\hline
+\textbf{Folder} & \textbf{Purpose} \\
+\hline
+\texttt{src/data} & Graph, tab, and UID logic \\
+\texttt{src/engine} & Kedro pipeline generation and execution \\
+\texttt{src/ui} & UI widgets and FDF block definitions \\
+\texttt{include/} & Header files corresponding to source files \\
+\texttt{external/} & Third-party libraries (vendored) \\
+\texttt{resources/} & App resources (icons, stylesheets, etc.) \\
+\texttt{scripts/} & Utility scripts for build or runtime tasks \\
+\texttt{tests/} & Unit and integration tests \\
+\hline
+\end{longtable}

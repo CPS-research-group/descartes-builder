@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: DesCartes Builder
+
+preferred-citation:
+  type: conference-paper
+  authors:
+    - family-names: "de Conto"
+      given-names: "Eduardo"
+    - family-names: "Genest"
+      given-names: "Blaise"
+    - family-names: "Easwaran"
+      given-names: "Arvind"
+  title: "Function+Data Flow: A Framework to Specify Machine Learning Pipelines for Digital Twinning"
+  year: 2024
+  doi: "10.1145/3664646.3664759"
+  isbn: "9798400706851"
+  url: "https://doi.org/10.1145/3664646.3664759"
+  conference:
+    name: "1st ACM International Conference on AI-Powered Software"
+    location: "Porto de Galinhas, Brazil"
+    series: "AIware 2024"
+  publisher: "Association for Computing Machinery"
+  address: "New York, NY, USA"
+  keywords:
+    - "dataflow"
+    - "digital twins"
+    - "machine learning pipeline"
