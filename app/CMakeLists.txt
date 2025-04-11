@@ -6,7 +6,7 @@ project(
   LANGUAGES CXX)
 
 option(BUILD_TESTS "Build the tests" ON)
-option(WIN_DEPLOY "Enable deployment of Qt dependencies for Windows" OFF)
+option(WIN_DEPLOY "Enable deployment of Qt dependencies for Windows" ON)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -19,7 +19,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin")
 
 add_definitions("-DQT_MESSAGELOGCONTEXT")
 
-find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+find_package(Python3 REQUIRED)
+if (WIN32 AND WIN_DEPLOY)
+  include_directories(${PYTHON3_INCLUDE_DIRS})
+  link_libraries(${PYTHON3_LIBRARIES})
+  find_package(ZLIB REQUIRED)
+  include_directories(${ZLIB_INCLUDE_DIR})
+  link_libraries(${ZLIB_LIBRARY})
+  find_package(BZIP2 REQUIRED)
+  include_directories(${BZIP2_INCLUDE_DIR})
+  link_libraries(${BZIP2_LIBRARY})
+endif()
 find_package(QT NAMES Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Test OpenGL
                                                        Core5Compat)

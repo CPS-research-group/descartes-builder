@@ -182,7 +182,7 @@ void MainWindow::initMenuBar()
                 previousTabAction->setEnabled(MORE_THAN_ONE);
             });
     connect(runAction, &QAction::triggered, this, &MainWindow::callExecute);
-
+#ifdef DEBUG
     { // temp menu for testing code
         QMenu *tempMenu = menuBar->addMenu("Temp");
         auto infoAction = tempMenu->addAction("print info");
@@ -212,6 +212,7 @@ void MainWindow::initMenuBar()
         });
         openMagnet->setShortcut(QKeyCombination(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_M));
     }
+#endif
 }
 
 void MainWindow::initPrimarySideBar()
