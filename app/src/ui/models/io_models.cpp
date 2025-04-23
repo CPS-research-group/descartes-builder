@@ -26,17 +26,7 @@ DataSourceModel::DataSourceModel()
     : FdfBlockModel(FdfType::Data, io_names::DATA_SOURCE)
     , m_widget(nullptr)
     , m_label(nullptr)
-{
-    addPort<DataNode>(PortType::Out);
-    auto uidManager = TabManager::instance().getCurrentUIDManager();
-    if (!uidManager) {
-        qWarning() << "UIDManager is null!";
-        return;
-    }
-
-    for (auto &port : allOutData<DataNode>())
-        port->setTypeId(uidManager->createUID());
-}
+{}
 
 QWidget *DataSourceModel::embeddedWidget()
 {
@@ -95,7 +85,9 @@ void DataSourceModel::setFile(const QFileInfo &file)
         m_fileType = CATALOG_EXTENSIONS.at(m_file.suffix());
     if (m_label)
         m_label->setText(m_file.fileName());
-    updatePortCaption(m_file.baseName());
+    // Create an output data port based on the name of file imported
+    auto newTag = m_file.baseName();
+    addPort<DataNode>(PortType::Out, newTag);
     emit contentUpdated();
 }
 
@@ -107,11 +99,12 @@ QString DataSourceModel::fileFilter()
     return extensions.join(' ');
 }
 
-void DataSourceModel::updatePortCaption(const QString &name)
+QString DataSourceModel::outPortCaption()
 {
-    if (name == portCaption(PortType::Out, 0))
-        return;
-    setPortCaption(PortType::Out, 0, name);
+    // convenience method to access the port caption
+    if (auto outPort = castedPort<DataNode>(PortType::Out, 0))
+        return outPort->name();
+    return "";
 }
 
 FuncOutModel::FuncOutModel()

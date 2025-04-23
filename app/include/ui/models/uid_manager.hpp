@@ -76,10 +76,12 @@ public:
             graph = tab_graph;
     }
     FdfUID createUID();
+    FdfUID createUID(QString tag); // creates a new UID based on the tag passed
     FdfUID getUid(const QString &tag) const;
     QString getTag(const FdfUID &uid) const;
     void updateMap(FdfUID &uid, QString &tag);
     ConnectionInfo getConnectionInfo(QtNodes::ConnectionId const connectionId) const;
+    QString getUniqueTag(QString tag);
 
 private:
     CustomGraph *graph;
@@ -90,6 +92,7 @@ private:
     void overrideType(FdfUID removeType, FdfUID keepType);
     bool replaceTypesInUIDVector(std::vector<FdfUID> &vec, FdfUID keepType, FdfUID removeType);
     void displayMaps() const;
+    void refreshDisplayNames();
     // TODO Later : Add map to store coder models to check the following :-
     // 1. iff all the Coder parameter are the same ^ all input types are same ->
     // we could reuse an existing type (T2 == T3).

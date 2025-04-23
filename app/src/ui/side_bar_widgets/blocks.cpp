@@ -14,6 +14,7 @@
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QTableWidget>
+#include <QTableWidgetItem>
 #include <QTreeWidget>
 #include <QWidgetAction>
 
@@ -111,7 +112,7 @@ void Blocks::updateFields()
 
         if (auto parameterWidget = generateParameterWidget(block))
             m_parametersWidget->addWidget(parameterWidget);
-        if (auto outputWidget = generatePortsWidget(block, PortType::Out))
+        if (auto outputWidget = generatePortsWidget(block))
             m_outputPorts->addWidget(outputWidget);
     }
     m_editorLayout->setRowVisible(FUNCTION_ROW, block && !block->functionName().isEmpty());
@@ -310,17 +311,19 @@ void Blocks::enableEditorWidgets(bool value)
         widget->setEnabled(value);
 }
 
-QWidget *Blocks::generatePortsWidget(FdfBlockModel *block, const PortType &portType)
+QWidget *Blocks::generatePortsWidget(FdfBlockModel *block)
 {
     if (!block)
         return nullptr;
 
-    int portCount = block->nPorts(portType);
+    int portCount = block->nPorts(PortType::Out);
     if (portCount == 0)
         return nullptr;
 
-    auto tableWidget = new QTableWidget(portCount, 4); // 4 columns
-    tableWidget->setHorizontalHeaderLabels({"Port ID", "Caption", "Type ID", "Type Tag"});
+    auto tableWidget
+        = new QTableWidget(portCount,
+                           4); // Number of coloumns of side table. TODO : Put Type ID under Debug
+    tableWidget->setHorizontalHeaderLabels({"Port ID", "Type ID", "Type Tag", "Annotation"});
     tableWidget->verticalHeader()->setVisible(false);
     tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     tableWidget->setSelectionMode(QAbstractItemView::NoSelection);
@@ -336,80 +339,73 @@ QWidget *Blocks::generatePortsWidget(FdfBlockModel *block, const PortType &portT
         if (auto namedNode = std::dynamic_pointer_cast<DataNode>(block->outData(i))) {
             FdfUID typeId = namedNode->typeId();
             QString typeTag = uidManager->getTag(typeId);
+            QString annot = namedNode->annotation();
 
-            // Column 1: Port ID
+            // Column 1: Port ID (Non-editable)
             auto portIdItem = new QTableWidgetItem(QString::number(i));
             portIdItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
             tableWidget->setItem(i, constants::SIDEBAR_PORT_ID_COL, portIdItem);
 
-            // Column 2: Caption (Editable)
-            auto captionItem = new QTableWidgetItem(block->portCaption(portType, i));
-            captionItem->setFlags(Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
-            tableWidget->setItem(i, constants::SIDEBAR_PORT_CAPTION_COL, captionItem);
-
-            // Column 3: Type ID (Non-editable)
+            // Column 2: Type ID (Non-editable)
             auto typeIdItem = new QTableWidgetItem(QString::number(typeId));
             typeIdItem->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
             tableWidget->setItem(i, constants::SIDEBAR_PORT_TYPEID_COL, typeIdItem);
 
-            // Column 4: Type Tag (Editable)
+            // Column 3: Type Tag (Editable)
             auto typeTagItem = new QTableWidgetItem(typeTag);
             typeTagItem->setFlags(Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
             tableWidget->setItem(i, constants::SIDEBAR_PORT_TYPETAG_COL, typeTagItem);
 
-            // Connect editingFinished (Triggered when editing is completed)
-            connect(tableWidget,
-                    &QTableWidget::itemChanged,
-                    block,
-                    [block, tableWidget, portType, uidManager](QTableWidgetItem *item) {
-                        if (!item)
-                            return;
-                        int row = item->row();
-                        if (item->column() == 1) {
-                            // Process a caption change
-                            QString newCaption = item->text();
-
-                            // Ensure the new value is actually different
-                            if (block->portCaption(portType, row) != newCaption) {
-                                block->setPortCaption(portType, row, newCaption);
-                            }
-                        } else if (item->column() == 3) {
-                            // Process a type tag change
-                            QString newTag = item->text();
-                            FdfUID currentID;
-                            QTableWidgetItem *typeIdItem = tableWidget->item(row, 2);
-                            if (typeIdItem) {
-                                currentID = typeIdItem->text().toInt();
-                                // If the new tag is one that already exists in the map,
-                                // raise a confirmation question
-                                if (uidManager->getTag(currentID) != newTag) {
-                                    if (uidManager->getUid(newTag) != UIDManager::NONE_ID) {
-                                        // If the user confirms the change, update the map
-                                        if (QMessageBox::question(nullptr,
-                                                                  "Type Tag Conflict",
-                                                                  constants::WARN_MANUAL_OVERRIDE,
-                                                                  QMessageBox::Yes | QMessageBox::No)
-                                            == QMessageBox::Yes) {
-                                            uidManager->updateMap(currentID, newTag);
-                                        } else {
-                                            // If the user cancels the change, revert the tag
-                                            item->setText(uidManager->getTag(currentID));
-                                        }
-                                    } else {
-                                        // Make sure the tag is not of the format "type_X", and
-                                        // X is a number, as this will cause bug when a new type X
-                                        // is created later in the flow.
-                                        // TODO : Add a warning message to the user - After annotation changes
-                                        uidManager->updateMap(currentID, newTag);
-                                    }
-                                }
-                            }
-                        }
-                    });
+            // Column 4: Annotation (Editable)
+            auto annotItem = new QTableWidgetItem(annot);
+            annotItem->setFlags(Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+            tableWidget->setItem(i, constants::SIDEBAR_PORT_ANNOT_COL, annotItem);
         }
     }
 
+    connect(tableWidget,
+            &QTableWidget::itemChanged,
+            block,
+            [block, tableWidget, uidManager, this](QTableWidgetItem *item) {
+                handlePortEdit(block, tableWidget, item, uidManager);
+            });
     return tableWidget;
+}
+
+void Blocks::handlePortEdit(FdfBlockModel *block,
+                            QTableWidget *tableWidget,
+                            QTableWidgetItem *item,
+                            UIDManager *uidManager)
+{
+    if (!item || !block || !uidManager)
+        return;
+
+    int row = item->row();
+    auto namedNode = std::dynamic_pointer_cast<DataNode>(block->outData(row));
+    if (!namedNode)
+        return;
+
+    auto checkTypeTagConflict = []() -> bool {
+        auto box = QMessageBox::question(nullptr,
+                                        "Type Tag Conflict",
+                                        constants::WARN_MANUAL_OVERRIDE,
+                                        QMessageBox::Yes | QMessageBox::No);   
+        return box == QMessageBox::Yes;
+    };
+
+    if (item->column() == constants::SIDEBAR_PORT_TYPETAG_COL) {
+        QString newTag = item->text();
+        if (uidManager->getUid(newTag) != UIDManager::NONE_ID) {
+            if (checkTypeTagConflict()) {
+                block->setPortTagAndAnnotation(PortType::Out, row, newTag, namedNode->annotation());
+            }
+        } else {
+            block->setPortTagAndAnnotation(PortType::Out, row, newTag, namedNode->annotation());
+        }
+    } else if (item->column() == constants::SIDEBAR_PORT_ANNOT_COL) {
+        QString newAnnot = item->text();
+        block->setPortTagAndAnnotation(PortType::Out, row, namedNode->typeTagName(), newAnnot);
+    }
 }
 
 QWidget *Blocks::generateParameterWidget(FdfBlockModel *block)

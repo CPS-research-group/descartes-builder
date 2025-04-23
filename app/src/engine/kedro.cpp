@@ -314,10 +314,12 @@ bool Kedro::generateCatalogYml(const QDir &kedroProject, std::shared_ptr<TabComp
         QFile::copy(tab->getDataDir().absoluteFilePath(fileName),
                     rawDataDir.absoluteFilePath(fileName));
         // add external data to catalog.yml
-        catalogEntries << constants::kedro::CATALOG_YML_ENTRY.arg(data->file().baseName(),
-                                                                  data->fileTypeString(),
-                                                                  constants::kedro::RAW_DATA_PATH
-                                                                      + fileName);
+        // Fetch the name of the data port of the datasourcemodel, and
+        // for compatibility with kedro, replace spaces with underscores.
+        catalogEntries << constants::kedro::CATALOG_YML_ENTRY
+                              .arg(data->outPortCaption().replace(' ', '_'),
+                                   data->fileTypeString(),
+                                   constants::kedro::RAW_DATA_PATH + fileName);
     }
     // add outputs to catalog.yml
     auto funcOuts = tab->getGraph()->getFuncOutModels();

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <QtNodes/NodeData>
-
 #include "data/constants.hpp"
+#include "data/tab_manager.hpp"
 #include "uid_manager.hpp"
+#include <QtNodes/NodeData>
 
 using QtNodes::NodeData;
 using QtNodes::NodeDataType;
@@ -12,8 +12,9 @@ class NamedNode : public NodeData
 {
 public:
     NamedNode(const QString &name)
-        : m_defaultName(name)
-        , m_type({"NamedNode", m_defaultName})
+        : m_defaultName(
+              name) // TODO : Verify and remove m_defaultName. All calls accessing this attribute have been removed
+        , m_type({"NamedNode", name})
     {}
 
     virtual QString id() { return m_type.id; }
@@ -32,37 +33,34 @@ protected:
 class DataNode : public NamedNode
 {
 public:
-    DataNode()
-        : DataNode("data")
-    {}
-    DataNode(const QString &name)
-        : NamedNode(name)
-        , m_typeId(UIDManager::NONE_ID) // Initialize m_typeId with a default value
-    {
-        m_type.id = constants::DATA_PORT_ID;
-        m_type.name = name;
-    }
-    FdfUID typeId() const { return m_typeId; }
-    void setTypeId(const FdfUID &typeId) { m_typeId = typeId; }
+    DataNode();
+    DataNode(const QString &name);
+    DataNode(FdfUID typeId);
+
+    FdfUID typeId() const;
+    void setTypeId(const FdfUID &typeId);
+    void setTypeTagName(const QString &name);
+    void setAnnotation(const QString &annot);
+    QString typeTagName() const;
+    QString annotation() const;
+    void updateDisplayName();
+    void setPlaceHolderCaption(QString typeTag, QString annot);
 
 private:
     FdfUID m_typeId;
+    QString m_typeTagName;
+    QString m_annotation;
+    void setParams(const QString &name);
 };
 
 class FunctionNode : public NamedNode
 {
 public:
-    FunctionNode()
-        : FunctionNode("function")
-    {}
-    FunctionNode(const QString &name)
-        : NamedNode(name)
-    {
-        m_type.id = constants::FUNCTION_PORT_ID;
-        m_type.name = name;
-    }
-    Signature signature() const { return m_signature; }
-    void setSignature(const Signature &signature) { m_signature = signature; }
+    FunctionNode();
+    FunctionNode(const QString &name);
+
+    Signature signature() const;
+    void setSignature(const Signature &signature);
 
 private:
     Signature m_signature;

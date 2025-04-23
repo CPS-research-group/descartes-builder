@@ -47,7 +47,10 @@ public:
 
     void setCaption(const QString &caption);
     bool setPortCaption(PortType type, PortIndex index, const QString &caption);
-    bool setPortDefaultCaption(PortType type, PortIndex index, const QString &caption);
+    bool setPortTagAndAnnotation(PortType type,
+                                 PortIndex index,
+                                 const QString &tag,
+                                 const QString &annot);
     bool resetPortCaption(PortType portType, PortIndex portIndex);
     void propagateUpdate();
 
@@ -170,9 +173,20 @@ protected:
         }
         return nullptr;
     }
+    // Accessor function to get a raw T* at a given index
+    template<typename T>
+    T *getInputPortAt(std::size_t index) const
+    {
+        if (index >= m_inPorts.size() || !m_inPorts[index].first) {
+            return nullptr;
+        }
+        return dynamic_cast<T *>(m_inPorts[index].first.get());
+    }
     // show warning for invalid port connection (implicit typing failure)
     bool warnInvalidConnection(ConnectionInfo connInfo, const QString &message) const;
     Q_INVOKABLE bool showWarning(ConnectionInfo connInfo, const QString &message);
+    std::vector<QString> m_defaultTags;  // default tags to be used as placeholder
+    std::vector<QString> m_defaultAnnot; // default annotations to be used as placeholder
 
 private:
     using InPortType = std::vector<std::pair<std::unique_ptr<NodeData>, std::weak_ptr<NodeData>>>;

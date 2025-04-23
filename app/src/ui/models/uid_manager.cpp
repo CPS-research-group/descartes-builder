@@ -5,7 +5,7 @@
 #include <QDebug>
 
 const FdfUID UIDManager::NONE_ID = -1;
-const QString UIDManager::NONE_TAG = "type_none";
+const QString UIDManager::NONE_TAG = "data_none";
 
 UIDManager::UIDManager() {}
 
@@ -16,9 +16,31 @@ FdfUID UIDManager::createUID()
         // find biggest uid in the map, and increment 1 to create new uid
         uid = uidToTag.rbegin()->first + 1;
     }
-    QString tag = QString("type_%1").arg(uid);
+    QString tag = QString("data_%1").arg(uid);
     updateMap(uid, tag);
     return uid;
+}
+
+FdfUID UIDManager::createUID(QString tag)
+{
+    FdfUID uid = 0;
+    if (!uidToTag.empty()) {
+        // find biggest uid in the map, and increment 1 to create new uid
+        uid = uidToTag.rbegin()->first + 1;
+    }
+    // make sure the tag is unique
+    QString newTag = getUniqueTag(tag);
+    updateMap(uid, newTag);
+    return uid;
+}
+
+QString UIDManager::getUniqueTag(QString tag)
+{
+    int counter = 1;
+    QString newTag = QString("%1").arg(tag);
+    while (tagToUid.count(newTag) > 0)
+        newTag = QString("%1_%2").arg(tag).arg(counter++);
+    return newTag;
 }
 
 FdfUID UIDManager::getUid(const QString &tag) const
@@ -53,6 +75,9 @@ void UIDManager::updateMap(FdfUID &uid, QString &tag)
             // Update both maps
             tagToUid[tag] = uid;
             uidToTag[uid] = tag;
+        } else if (uidToTag[uid] == tag) {
+            // nothing to update, return
+            return;
         } else // user chooses to override a type mismatch, setting a type to another existent type
         {
             FdfUID removeId = std::max(uid, getUid(tag));
@@ -62,6 +87,7 @@ void UIDManager::updateMap(FdfUID &uid, QString &tag)
             tagToUid.erase(getTag(removeId));
             uidToTag.erase(removeId);
         }
+        refreshDisplayNames(); // calls updateDisplayName on all DataNodes on a type override
     }
     // displayMaps();
 }
@@ -76,6 +102,33 @@ void UIDManager::displayMaps() const
     qInfo() << "Tag to UID Map:";
     for (const auto &pair : tagToUid) {
         qInfo() << "Tag:" << pair.first << "-> UID:" << pair.second;
+    }
+}
+
+void UIDManager::refreshDisplayNames()
+{
+    if (!graph) {
+        qWarning() << "UID Manager does not have an associated graph!";
+        return;
+    }
+
+    for (const auto &id : graph->allNodeIds()) {
+        auto block = graph->delegateModel<FdfBlockModel>(id);
+        if (!block)
+            continue;
+
+        for (int i = 0; i < block->nPorts(PortType::Out); i++) {
+            if (auto dataPort = std::dynamic_pointer_cast<DataNode>(block->outData(i))) {
+                QString currentDisplayName = dataPort->name();
+                dataPort->updateDisplayName();
+                if (currentDisplayName != dataPort->name()) {
+                    block->propagateUpdate();
+                }
+                // we need to also ensure output port captions remain unique after tag changes
+                // since captions are now deterministic
+                graph->makeOutPortsUnique(id, block, i);
+            }
+        }
     }
 }
 

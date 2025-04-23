@@ -15,6 +15,11 @@ public:
         static TabManager instance;
         return instance;
     }
+    static UIDManager *getUIDManager()
+    {
+        return TabManager::instance().getCurrentUIDManager();
+    }
+
     TabManager(const TabManager &) = delete;
     TabManager &operator=(const TabManager &) = delete;
 

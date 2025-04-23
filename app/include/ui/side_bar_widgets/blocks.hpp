@@ -1,9 +1,10 @@
 #pragma once
 
-#include <QObject>
-#include <QWidget>
-
+#include "ui/models/uid_manager.hpp"
 #include <unordered_set>
+#include <QObject>
+#include <QTableWidgetItem>
+#include <QWidget>
 #include <QtNodes/NodeDelegateModel>
 
 class QLabel;
@@ -52,7 +53,11 @@ private:
     void blockEditorSignals(bool value);
     void enableEditorWidgets(bool value);
     QWidget *generateParameterWidget(FdfBlockModel *block);
-    QWidget *generatePortsWidget(FdfBlockModel *block, const PortType &portType);
+    QWidget *generatePortsWidget(FdfBlockModel *block);
+    void handlePortEdit(FdfBlockModel *block,
+                        QTableWidget *tableWidget,
+                        QTableWidgetItem *item,
+                        UIDManager *uidManager);
     void handleInputRows(FdfBlockModel *block);
 
     std::shared_ptr<BlockManager> m_blockManager;

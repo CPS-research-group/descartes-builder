@@ -23,7 +23,7 @@ public:
     CustomGraph *getGraph() const { return m_graph; }
     QtNodes::DagGraphicsScene *getScene() const { return m_scene; }
     QtNodes::GraphicsView *getView() const { return m_view; }
-    std::unique_ptr<UIDManager> &getUIDManager() { return m_uidManager; }
+    std::unique_ptr<UIDManager> &getTabUIDManager() { return m_uidManager; }
     std::shared_ptr<QTemporaryDir> getTempDir() { return m_dir; }
     QDir getDataDir() { return m_dataDir; }
     QFileInfo getFileInfo() { return m_localFile; }
