@@ -1,9 +1,10 @@
 #pragma once
 
-#include <QObject>
-#include <QWidget>
-
+#include "ui/models/uid_manager.hpp"
 #include <unordered_set>
+#include <QObject>
+#include <QTableWidgetItem>
+#include <QWidget>
 #include <QtNodes/NodeDelegateModel>
 
 class QLabel;

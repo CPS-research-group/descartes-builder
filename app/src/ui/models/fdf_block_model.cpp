@@ -70,9 +70,9 @@ void FdfBlockModel::setInData(std::shared_ptr<NodeData> data, PortIndex const in
         emit dataInvalidated(index);
         m_inPorts.at(index).second = std::weak_ptr<NodeData>();
         resetPortCaption(PortType::In, index);
-        if (auto casted = dynamic_cast<FunctionNode *>(m_inPorts.at(index).first.get()))
+        if (auto casted = getInputPortAt<FunctionNode>(index))
             onFunctionInputReset(index);
-        else if (auto casted = dynamic_cast<DataNode *>(m_inPorts.at(index).first.get()))
+        else if (auto casted = getInputPortAt<DataNode>(index))
             onDataInputReset(index);
         return;
     }
@@ -281,47 +281,50 @@ void FdfBlockModel::setCaption(const QString &caption)
     emit captionUpdated(m_caption);
 }
 
-bool FdfBlockModel::setPortCaption(PortType type, PortIndex index, const QString &caption)
+bool FdfBlockModel::setPortTagAndAnnotation(PortType type,
+                                            PortIndex index,
+                                            const QString &tag,
+                                            const QString &annot)
 {
+    // This will set the port tag and annotation and internally call setportcaption with the new caption
     if (!indexCheck(type, index))
         return false;
     switch (type) {
     case PortType::In:
-        if (auto namedNode = dynamic_cast<NamedNode *>(m_inPorts.at(index).first.get())) {
-            namedNode->setName(caption);
+        if (auto casted = getInputPortAt<DataNode>(index)) {
+            casted->setTypeTagName(tag);
+            casted->setAnnotation(annot);
         } else
             return false;
         break;
     case PortType::Out:
-        if (auto namedNode = std::dynamic_pointer_cast<NamedNode>(m_outPorts.at(index).first)) {
-            namedNode->setName(caption);
+        if (auto casted = castedPort<DataNode>(PortType::Out, index)) {
+            casted->setTypeTagName(tag);
+            casted->setAnnotation(annot);
+            emit outPortCaptionUpdated(index, casted->name());
         } else
             return false;
         break;
     default:
         return false;
     }
-    propagateUpdate();
     return true;
 }
 
-bool FdfBlockModel::setPortDefaultCaption(PortType type, PortIndex index, const QString &caption)
+bool FdfBlockModel::setPortCaption(PortType type, PortIndex index, const QString &caption)
 {
     if (!indexCheck(type, index))
         return false;
     switch (type) {
     case PortType::In:
-        if (auto namedNode = dynamic_cast<NamedNode *>(m_inPorts.at(index).first.get())) {
-            namedNode->setDefaultName(caption);
+        if (auto casted = getInputPortAt<NamedNode>(index)) {
+            casted->setName(caption);
         } else
             return false;
         break;
     case PortType::Out:
-        if (auto namedNode = std::dynamic_pointer_cast<NamedNode>(m_outPorts.at(index).first)) {
-            if (namedNode->defaultName() != caption) {
-                namedNode->setDefaultName(caption);
-                emit outPortCaptionUpdated(index, caption);
-            }
+        if (auto casted = castedPort<NamedNode>(PortType::Out, index)) {
+            casted->setName(caption);
         } else
             return false;
         break;
@@ -338,14 +341,14 @@ bool FdfBlockModel::resetPortCaption(PortType type, PortIndex index)
         return false;
     switch (type) {
     case PortType::In:
-        if (auto namedNode = dynamic_cast<NamedNode *>(m_inPorts.at(index).first.get())) {
-            namedNode->reset();
+        if (auto casted = getInputPortAt<NamedNode>(index)) {
+            casted->reset();
         } else
             return false;
         break;
     case PortType::Out:
-        if (auto namedNode = std::dynamic_pointer_cast<NamedNode>(m_outPorts.at(index).first)) {
-            namedNode->reset();
+        if (auto casted = castedPort<NamedNode>(PortType::Out, index)) {
+            casted->reset();
         } else
             return false;
         break;
@@ -439,7 +442,7 @@ bool FdfBlockModel::showWarning(ConnectionInfo connInfo, const QString &message)
     if (message == constants::TYPE_MISMATCH) {
         auto expectedInType = connInfo.expectedInType;
         auto receivedOutType = connInfo.receivedOutType;
-
+        auto uidManager = TabManager::getUIDManager();
         QString expectedTag = uidManager->getTag(expectedInType);
         QString gotTag = uidManager->getTag(receivedOutType);
         msgBox.setInformativeText(QString(message).arg(gotTag).arg(expectedTag));

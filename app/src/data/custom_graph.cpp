@@ -65,11 +65,7 @@ bool CustomGraph::connectionPossible(QtNodes::ConnectionId const connectionId) c
         return true; // Ignore connection check if mouse is still pressed
     }
 
-    auto uidManager = TabManager::instance().getCurrentUIDManager();
-    if (!uidManager) {
-        qWarning() << "UIDManager is null!";
-        return false;
-    }
+    auto uidManager = TabManager::getUIDManager();
     ConnectionInfo connInfo = uidManager->getConnectionInfo(connectionId);
     if (auto block = delegateModel<FdfBlockModel>(connInfo.inNodeId)) {
         auto result = block->canConnect(connInfo);
@@ -219,7 +215,7 @@ void CustomGraph::makeOutPortsUnique(const QtNodes::NodeId &nodeId,
                                      const PortIndex &index)
 {
     auto portType = QtNodes::PortType::Out;
-    const auto ORIGINAL_NAME = block->defaultPortCaption(portType, index);
+    const auto ORIGINAL_NAME = block->portCaption(portType, index);
     uint counter = 1;
 
     if (m_trackedNodes.count(nodeId) > 0) {
@@ -234,10 +230,7 @@ void CustomGraph::makeOutPortsUnique(const QtNodes::NodeId &nodeId,
         uniqueName = QString("%1_%2").arg(ORIGINAL_NAME, QString::number(++counter));
     }
     m_usedOutPortCaptions[uniqueName] = std::make_pair(nodeId, index);
-    if (ORIGINAL_NAME != uniqueName) {
-        block->setPortDefaultCaption(portType, index, uniqueName);
-        block->resetPortCaption(portType, index);
-    }
+    block->setPortCaption(portType, index, uniqueName);
 }
 
 bool CustomGraph::verifyBlocksValidity() const

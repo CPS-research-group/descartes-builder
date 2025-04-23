@@ -114,7 +114,7 @@ void Blocks::updateFields()
 
         if (auto parameterWidget = generateParameterWidget(block))
             m_parametersWidget->addWidget(parameterWidget);
-        if (auto outputWidget = generatePortsWidget(block, PortType::Out))
+        if (auto outputWidget = generatePortsWidget(block))
             m_outputPorts->addWidget(outputWidget);
     }
     m_editorLayout->setRowVisible(FUNCTION_ROW, block && !block->functionName().isEmpty());
@@ -359,12 +359,12 @@ void Blocks::enableEditorWidgets(bool value)
         widget->setEnabled(value);
 }
 
-QWidget *Blocks::generatePortsWidget(FdfBlockModel *block, const PortType &portType)
+QWidget *Blocks::generatePortsWidget(FdfBlockModel *block)
 {
     if (!block)
         return nullptr;
 
-    int portCount = block->nPorts(portType);
+    int portCount = block->nPorts(PortType::Out);
     if (portCount == 0)
         return nullptr;
 

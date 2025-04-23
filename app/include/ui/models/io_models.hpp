@@ -38,9 +38,6 @@ public:
 signals:
     void importClicked();
 
-private slots:
-    void updatePortCaption(const QString &name);
-
 private:
     QWidget *m_widget;
     QLabel *m_label;
