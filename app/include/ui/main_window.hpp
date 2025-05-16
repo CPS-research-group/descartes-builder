@@ -18,6 +18,9 @@ public:
     MainWindow();
     ~MainWindow();
 
+public slots:
+    void gridToggled(bool enabled);
+
 private slots:
     bool callExecute();
     void onBlockSelected(const uint &id);

@@ -1,5 +1,7 @@
 #include "ui/side_bar_widgets/settings.hpp"
 
+#include "ui/main_window.hpp"
+#include <QCheckBox>
 #include <QComboBox>
 #include <QLabel>
 #include <QScrollArea>
@@ -17,11 +19,12 @@ QVariant settingValue(const QString &key)
 
 } // namespace
 
-Settings::Settings(QWidget *parent)
+Settings::Settings(MainWindow *mw, QWidget *parent)
     : QWidget(parent)
     , m_formatBox(new QComboBox)
     , m_engineBox(new QComboBox)
     , m_engineTimeoutBox(new QSpinBox)
+    , mainWindowPtr(mw)
 {
     auto scrollArea = new QScrollArea;
     {
@@ -48,6 +51,11 @@ Settings::Settings(QWidget *parent)
         layout->addWidget(new QLabel("engine timeout (minutes): "));
         m_engineTimeoutBox->setRange(1, 20);
         layout->addWidget(m_engineTimeoutBox);
+
+        QCheckBox *gridEnable = new QCheckBox("Show Grid", this);
+        gridEnable->setChecked(true);
+        layout->addWidget(gridEnable);
+        connect(gridEnable, &QCheckBox::toggled, mainWindowPtr, &MainWindow::gridToggled);
 
         { // set default values to the UI
             m_formatBox->setCurrentText(settingValue("default export format").toString());

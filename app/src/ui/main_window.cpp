@@ -98,7 +98,7 @@ void MainWindow::initManagers()
 void MainWindow::initScene()
 {
     ConnectionStyle::setConnectionStyle(constants::CONNECTION_STYLE);
-    GraphicsViewStyle::setStyle(constants::GRAPHICS_VIEW_STYLE);
+    GraphicsViewStyle::setStyle(constants::GRAPHICS_VIEW_STYLE_GRID);
     NodeStyle::setNodeStyle(constants::NODE_STYLE);
 
     m_centralWidget = new QWidget();
@@ -239,7 +239,7 @@ void MainWindow::initPrimarySideBar()
         {SideBarAction::Settings,
          QtUtility::media::recolor(QIcon(":/settings.png"), constants::COLOR_SECONDARY),
          "Settings",
-         new Settings},
+         new Settings(this)},
         {SideBarAction::Information,
          QtUtility::media::recolor(QIcon(":/information.png"), constants::COLOR_SECONDARY),
          "Information",
@@ -291,4 +291,21 @@ void MainWindow::enableChartAction(bool state)
     action->setToolTip(tooltip);
     if (!state && action->isChecked()) // if currently at charts and we disable it, switch to blocks
         m_sidebarActions.at(SideBarAction::Blocks)->trigger();
+}
+
+void MainWindow::gridToggled(bool enabled)
+{
+    if (auto *view = m_tabManager->currentView()) {
+        if (enabled) {
+            GraphicsViewStyle::setStyle(constants::GRAPHICS_VIEW_STYLE_GRID);
+        } else {
+            GraphicsViewStyle::setStyle(constants::GRAPHICS_VIEW_STYLE_PLAIN);
+        }
+        if (auto *scene = qobject_cast<QtNodes::BasicGraphicsScene *>(view->scene())) {
+            QRect visibleRect = view->viewport()->rect();
+            QRectF visibleSceneRect = view->mapToScene(visibleRect).boundingRect();
+            scene->invalidate(visibleSceneRect, QGraphicsScene::BackgroundLayer);
+            view->viewport()->update();
+        }
+    }
 }

@@ -48,7 +48,7 @@ constexpr ConstLatin1String CONNECTION_STYLE =
             }
         }
         )";
-constexpr ConstLatin1String GRAPHICS_VIEW_STYLE =
+constexpr ConstLatin1String GRAPHICS_VIEW_STYLE_GRID =
     R"(
         {
             "GraphicsViewStyle": {
@@ -58,6 +58,17 @@ constexpr ConstLatin1String GRAPHICS_VIEW_STYLE =
             }
         }
     )";
+constexpr ConstLatin1String GRAPHICS_VIEW_STYLE_PLAIN =
+    R"(
+        {
+            "GraphicsViewStyle": {
+                "BackgroundColor": "white",
+                "FineGridColor": "transparent",
+                "CoarseGridColor": "transparent"
+            }
+        }
+    )";
+
 constexpr ConstLatin1String NODE_STYLE =
     R"(
         {
