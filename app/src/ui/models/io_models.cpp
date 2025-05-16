@@ -16,6 +16,7 @@ std::unordered_map<CatalogType, QString> CATALOG_STRING = {
 std::unordered_map<QString, CatalogType> CATALOG_EXTENSIONS = {
     {"csv", CatalogType::Csv},
     {"pickle", CatalogType::Pickle},
+    {"pkl", CatalogType::Pickle},
     {"mat", CatalogType::H5},
     {"jld2", CatalogType::H5},
 };
