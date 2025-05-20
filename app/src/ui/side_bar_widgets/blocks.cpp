@@ -14,6 +14,8 @@
 #include <QSpinBox>
 #include <QStackedWidget>
 #include <QTableWidget>
+#include <QTableWidgetItem>
+#include <QTimer>
 #include <QTreeWidget>
 #include <QWidgetAction>
 
@@ -99,7 +101,8 @@ void Blocks::updateFields()
         // fill the fields
         m_idEdit->setText(QString::number(m_nodeId));
         m_functionNameEdit->setText(block->functionName());
-        m_captionEdit->setText(block->caption());
+        QString sanitizedCaption = constants::sanitizeCaption(block->caption());
+        m_captionEdit->setText(sanitizedCaption);
         m_inputPortEdit->setMinimum(
             block->minModifiablePorts(PortType::In, constants::DATA_PORT_ID));
         m_inputPortEdit->setValue(block->nPorts(PortType::In, constants::DATA_PORT_ID));
@@ -162,15 +165,39 @@ void Blocks::initEditor()
     auto formWidget = new QWidget();
     m_editorLayout = new QFormLayout(formWidget);
     m_editorLayout->setContentsMargins(0, 0, 0, 0);
+
     m_editorLayout->addRow(new QLabel("Id:"), m_idEdit);
     m_idEdit->setDisabled(true);
     m_idEdit->setMaximumWidth(constants::INT_LINE_EDIT_MAXIMUM_WIDTH);
+
     m_editorLayout->addRow(new QLabel("Function:"), m_functionNameEdit);
     m_editorLayout->setRowVisible(FUNCTION_ROW, false);
     m_functionNameEdit->setDisabled(true);
     m_functionNameEdit->setMaximumWidth(constants::INT_LINE_EDIT_MAXIMUM_WIDTH);
+
     m_captionEdit->setMaximumWidth(constants::INT_LINE_EDIT_MAXIMUM_WIDTH);
-    m_editorLayout->addRow(new QLabel("Caption:"), m_captionEdit);
+    QPixmap warningPixmap = style()->standardPixmap(QStyle::SP_MessageBoxWarning);
+    // to maintain height, as in Windows the default size is bigger
+    int editHeight = m_captionEdit->sizeHint().height();
+    QPixmap scaledIcon = warningPixmap.scaledToHeight(editHeight, Qt::SmoothTransformation);
+    m_invalidIcon = new QLabel(formWidget); // tool tip for invalid caption
+    m_invalidIcon->setPixmap(scaledIcon);
+    const QString validCaption
+        = "Caption must contain only letters, digits, hyphens, underscores, or fullstops.";
+    m_invalidIcon->setToolTip(validCaption);
+    m_invalidIcon->setVisible(false);
+
+    auto captionLayout = new QHBoxLayout();
+    captionLayout->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    captionLayout->addWidget(m_captionEdit);
+    captionLayout->addWidget(m_invalidIcon);
+    captionLayout->setContentsMargins(0, 0, 0, 0);
+    auto captionContainer = new QWidget(formWidget);
+    captionContainer->setLayout(captionLayout);
+    QLabel *captionLabel = new QLabel("Caption:");
+    captionLabel->setToolTip(validCaption);
+    captionLabel->setCursor(Qt::PointingHandCursor);
+    m_editorLayout->addRow(captionLabel, captionContainer);
 
     m_inputPortEdit->setRange(0, constants::MAX_DATA_INPUT_PORTS);
     m_inputPortEdit->setMaximumWidth(constants::INT_SPIN_BOX_MAX_WIDTH);
@@ -217,9 +244,8 @@ void Blocks::initEditor()
     connect(this, &Blocks::nodeIdChanged, this, &Blocks::updateFields);
     connect(m_blockManager.get(), &BlockManager::nodeUpdated, this, &Blocks::onNodeUpdated);
 
-    connect(m_captionEdit, &QLineEdit::textChanged, this, [this](QString text) {
-        m_blockManager->getBlock(m_nodeId)->setCaption(text);
-    });
+    setupCaptionValidation();
+
     connect(m_inputPortEdit, &QSpinBox::valueChanged, this, [this](int value) {
         m_blockManager->getBlock(m_nodeId)->setInputPortNumber(value);
     });
@@ -234,6 +260,29 @@ void Blocks::initEditor()
         if (auto trainer = dynamic_cast<TrainerModel *>(m_blockManager->getBlock(m_nodeId)))
             trainer->setTrainerOutputNumber(value);
     });
+}
+
+void Blocks::setupCaptionValidation()
+{
+    // Regular expression: allow letters, digits, hyphens, underscores, and fullstops
+    // when a user types in an invalid caption, the pop up
+    //comes up after 4 seconds. The invalid caption won't be saved
+    QTimer *hideIconTimer = new QTimer(this);
+    hideIconTimer->setSingleShot(true);
+    hideIconTimer->setInterval(4000);
+    connect(m_captionEdit, &QLineEdit::textChanged, this, [=](const QString &text) {
+        QString sanitized = constants::sanitizeCaption(text);
+        bool isValid = (sanitized == text && !text.isEmpty());
+        if (!isValid) {
+            m_invalidIcon->setVisible(true);
+            hideIconTimer->start();
+        } else {
+            hideIconTimer->stop();
+            m_invalidIcon->setVisible(false);
+            m_blockManager->getBlock(m_nodeId)->setCaption(text);
+        }
+    });
+    connect(hideIconTimer, &QTimer::timeout, this, [=]() { m_invalidIcon->setVisible(false); });
 }
 
 void Blocks::initLibrary()
@@ -357,59 +406,56 @@ QWidget *Blocks::generatePortsWidget(FdfBlockModel *block, const PortType &portT
             typeTagItem->setFlags(Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
             tableWidget->setItem(i, constants::SIDEBAR_PORT_TYPETAG_COL, typeTagItem);
 
-            // Connect editingFinished (Triggered when editing is completed)
-            connect(tableWidget,
-                    &QTableWidget::itemChanged,
-                    block,
-                    [block, tableWidget, portType, uidManager](QTableWidgetItem *item) {
-                        if (!item)
-                            return;
-                        int row = item->row();
-                        if (item->column() == 1) {
-                            // Process a caption change
-                            QString newCaption = item->text();
-
-                            // Ensure the new value is actually different
-                            if (block->portCaption(portType, row) != newCaption) {
-                                block->setPortCaption(portType, row, newCaption);
-                            }
-                        } else if (item->column() == 3) {
-                            // Process a type tag change
-                            QString newTag = item->text();
-                            FdfUID currentID;
-                            QTableWidgetItem *typeIdItem = tableWidget->item(row, 2);
-                            if (typeIdItem) {
-                                currentID = typeIdItem->text().toInt();
-                                // If the new tag is one that already exists in the map,
-                                // raise a confirmation question
-                                if (uidManager->getTag(currentID) != newTag) {
-                                    if (uidManager->getUid(newTag) != UIDManager::NONE_ID) {
-                                        // If the user confirms the change, update the map
-                                        if (QMessageBox::question(nullptr,
-                                                                  "Type Tag Conflict",
-                                                                  constants::WARN_MANUAL_OVERRIDE,
-                                                                  QMessageBox::Yes | QMessageBox::No)
-                                            == QMessageBox::Yes) {
-                                            uidManager->updateMap(currentID, newTag);
-                                        } else {
-                                            // If the user cancels the change, revert the tag
-                                            item->setText(uidManager->getTag(currentID));
-                                        }
-                                    } else {
-                                        // Make sure the tag is not of the format "type_X", and
-                                        // X is a number, as this will cause bug when a new type X
-                                        // is created later in the flow.
-                                        // TODO : Add a warning message to the user - After annotation changes
-                                        uidManager->updateMap(currentID, newTag);
-                                    }
-                                }
-                            }
-                        }
-                    });
+            // Column 4: Annotation (Editable)
+            auto annotItem = new QTableWidgetItem(annot);
+            annotItem->setFlags(Qt::ItemIsEditable | Qt::ItemIsSelectable | Qt::ItemIsEnabled);
+            tableWidget->setItem(i, constants::SIDEBAR_PORT_ANNOT_COL, annotItem);
         }
     }
 
+    connect(tableWidget,
+            &QTableWidget::itemChanged,
+            block,
+            [block, tableWidget, uidManager, this](QTableWidgetItem *item) {
+                handlePortEdit(block, tableWidget, item, uidManager);
+            });
     return tableWidget;
+}
+
+void Blocks::handlePortEdit(FdfBlockModel *block,
+                            QTableWidget *tableWidget,
+                            QTableWidgetItem *item,
+                            UIDManager *uidManager)
+{
+    if (!item || !block || !uidManager)
+        return;
+
+    int row = item->row();
+    auto namedNode = std::dynamic_pointer_cast<DataNode>(block->outData(row));
+    if (!namedNode)
+        return;
+
+    auto checkTypeTagConflict = []() -> bool {
+        auto box = QMessageBox::question(nullptr,
+                                         "Type Tag Conflict",
+                                         constants::WARN_MANUAL_OVERRIDE,
+                                         QMessageBox::Yes | QMessageBox::No);
+        return box == QMessageBox::Yes;
+    };
+
+    if (item->column() == constants::SIDEBAR_PORT_TYPETAG_COL) {
+        QString newTag = item->text();
+        if (uidManager->getUid(newTag) != UIDManager::NONE_ID) {
+            if (checkTypeTagConflict()) {
+                block->setPortTagAndAnnotation(PortType::Out, row, newTag, namedNode->annotation());
+            }
+        } else {
+            block->setPortTagAndAnnotation(PortType::Out, row, newTag, namedNode->annotation());
+        }
+    } else if (item->column() == constants::SIDEBAR_PORT_ANNOT_COL) {
+        QString newAnnot = item->text();
+        block->setPortTagAndAnnotation(PortType::Out, row, namedNode->typeTagName(), newAnnot);
+    }
 }
 
 QWidget *Blocks::generateParameterWidget(FdfBlockModel *block)

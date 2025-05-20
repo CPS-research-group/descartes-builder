@@ -50,7 +50,7 @@ QStringList getPortList(const FdfBlockModel &block, const PortType &type)
     for (PortIndex i = 0; i < block.nPorts(type); ++i) {
         // if an in port is not connected it is null, the 'if' can be removed after the validity check handles it
         if (auto port = block.portData(type, i))
-            result.append(quote(port->type().name.replace(' ', '_')));
+            result.append(quote(port->type().name));
     }
     return result;
 }
@@ -78,10 +78,10 @@ QString toString(const FdfBlockModel &block)
     QString result = block.typeAsString() + '(';
     if (!block.functionName().isEmpty())
         result += QString("func=%1,").arg(block.functionName());
-    result += QString("name=%1").arg(quote(block.caption().replace(' ', '_')));
+    result += QString("name=%1").arg(quote(block.caption()));
     QStringList inputs = getPortList(block, PortType::In);
     if (block.hasParameters())
-        inputs << quote(QString("params:%1").arg(block.caption().replace(' ', '_')));
+        inputs << quote(QString("params:%1").arg(block.caption()));
     if (inputs.size() == 1)
         result += QString(",inputs=%1").arg(inputs.at(0));
     else if (inputs.size() > 1)
@@ -284,7 +284,7 @@ bool Kedro::generateParametersYml(const QDir &kedroProject, CustomGraph *graph)
         if (auto block = graph->delegateModel<FdfBlockModel>(id)) {
             if (!block->hasParameters())
                 continue;
-            parameters << block->caption().replace(' ', '_') + ':';
+            parameters << block->caption() + ':';
             for (auto &pair : block->getParameters())
                 parameters << QString("  %1: %2").arg(pair.first, pair.second);
         }
@@ -314,7 +314,9 @@ bool Kedro::generateCatalogYml(const QDir &kedroProject, std::shared_ptr<TabComp
         QFile::copy(tab->getDataDir().absoluteFilePath(fileName),
                     rawDataDir.absoluteFilePath(fileName));
         // add external data to catalog.yml
-        catalogEntries << constants::kedro::CATALOG_YML_ENTRY.arg(data->file().baseName(),
+        // Fetch the name of the data port of the datasourcemodel, and
+        // for compatibility with kedro, replace spaces with underscores.
+        catalogEntries << constants::kedro::CATALOG_YML_ENTRY.arg(data->outPortCaption(),
                                                                   data->fileTypeString(),
                                                                   constants::kedro::RAW_DATA_PATH
                                                                       + fileName);
@@ -322,7 +324,7 @@ bool Kedro::generateCatalogYml(const QDir &kedroProject, std::shared_ptr<TabComp
     // add outputs to catalog.yml
     auto funcOuts = tab->getGraph()->getFuncOutModels();
     for (auto funcOut : funcOuts) {
-        auto name = funcOut->getFileName().replace(' ', '_');
+        auto name = funcOut->getFileName();
         catalogEntries << constants::kedro::CATALOG_YML_ENTRY
                               .arg(name,
                                    funcOut->fileTypeString(),
@@ -390,8 +392,7 @@ void Kedro::postScoreModel(CustomGraph *graph, const QtNodes::NodeId &id)
         return;
 
     QDir reportDir(m_execution->project.absoluteFilePath(constants::kedro::REPORTING_PATH)
-                   + score->caption().replace(' ', '_') // XXX /!\ needs to be in the block directly
-    );
+                   + score->caption());
 
     // save the graphs
     auto graphs = reportDir.entryList({"*.png"}, QDir::Files);
@@ -427,8 +428,7 @@ void Kedro::postSensitivityAnalysisModel(CustomGraph *graph, const QtNodes::Node
         return;
 
     QDir reportDir(m_execution->project.absoluteFilePath(constants::kedro::REPORTING_PATH)
-                   + block->caption().replace(' ', '_') // XXX /!\ needs to be in the block directly
-    );
+                   + block->caption());
     // save the graphs
     auto graphs = reportDir.entryList({"*.png"}, QDir::Files);
     for (auto &graph : graphs)

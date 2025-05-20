@@ -192,7 +192,7 @@ void CustomGraph::makeCaptionUnique(const QtNodes::NodeId &nodeId, FdfBlockModel
         removeByValue(m_usedNodeCaptions, nodeId);
     }
     while (m_usedNodeCaptions.count(uniqueCaption) > 0)
-        uniqueCaption = QString("%1 %2").arg(block->caption(), QString::number(++counter));
+        uniqueCaption = QString("%1_%2").arg(block->caption(), QString::number(++counter));
     m_usedNodeCaptions[uniqueCaption] = nodeId;
     m_trackedNodes.insert(nodeId);
     if (block->caption() != uniqueCaption)
@@ -224,7 +224,7 @@ void CustomGraph::makeOutPortsUnique(const QtNodes::NodeId &nodeId,
     }
     auto uniqueName = ORIGINAL_NAME;
     while (m_usedOutPortCaptions.count(uniqueName) > 0) {
-        uniqueName = QString("%1 %2").arg(ORIGINAL_NAME, QString::number(++counter));
+        uniqueName = QString("%1_%2").arg(ORIGINAL_NAME, QString::number(++counter));
     }
     m_usedOutPortCaptions[uniqueName] = std::make_pair(nodeId, index);
     if (ORIGINAL_NAME != uniqueName) {

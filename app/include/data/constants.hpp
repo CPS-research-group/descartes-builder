@@ -2,6 +2,7 @@
 
 #include <QColor>
 
+#include <QRegularExpression>
 #include <QtNodes/NodeData>
 #include <QtUtility/data/constexpr_qstring.hpp>
 
@@ -109,6 +110,14 @@ inline bool isFunctionNode(QtNodes::NodeDataType node)
 inline bool isDataNode(QtNodes::NodeDataType node)
 {
     return node.id == constants::DATA_PORT_ID;
+}
+
+inline QString sanitizeCaption(const QString &caption)
+{
+    QRegularExpression invalidCharsRegex("[^a-zA-Z0-9._-]+");
+    QString result = caption;
+    result.replace(invalidCharsRegex, ""); // silently remove invalid characters
+    return result;
 }
 
 // Define a named constant for the red color used in function port styling

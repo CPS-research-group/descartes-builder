@@ -136,7 +136,7 @@ void FdfBlockModel::load(QJsonObject const &p)
         m_functionName = value.toString();
     value = p["caption"];
     if (!value.isUndefined())
-        m_caption = value.toString();
+        m_caption = constants::sanitizeCaption(value.toString());
     value = p["parameters"];
     if (!value.isUndefined()) {
         QJsonObject parameters = value.toObject();
@@ -384,12 +384,6 @@ bool FdfBlockModel::showWarning(ConnectionInfo connInfo, const QString &message)
     msgBox.setText("<b><span style='color:red;'>Invalid Connection</span></b>");
     msgBox.setStandardButtons(QMessageBox::Ok);
     msgBox.setDefaultButton(QMessageBox::Ok);
-
-    auto uidManager = TabManager::instance().getCurrentUIDManager();
-    if (!uidManager) {
-        qWarning() << "UIDManager is null!";
-        return false;
-    }
 
     // Check the message and handle accordingly
     if (message == constants::TYPE_MISMATCH) {
