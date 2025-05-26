@@ -17,6 +17,8 @@ public:
 
     MainWindow();
     ~MainWindow();
+    bool openDCB(const QString &fileName);
+    bool executeDCB();
 
 public slots:
     void gridToggled(bool enabled);

@@ -20,5 +20,10 @@ int main(int argc, char *argv[])
 
     MainWindow w;
     w.show();
+    // User can specify a DCB file while running the executable
+    if (argc > 1) {
+        QString dcbFile = argv[1];
+        w.openDCB(dcbFile);
+    }
     return app.exec();
 }

@@ -69,6 +69,16 @@ MainWindow::~MainWindow()
     qInfo() << "Program has finished.";
 }
 
+bool MainWindow::openDCB(const QString &filePath)
+{
+    return m_tabManager->openFrom(filePath);
+}
+
+bool MainWindow::executeDCB()
+{
+    return callExecute();
+}
+
 bool MainWindow::callExecute()
 {
     return m_engine->execute(m_tabManager->getCurrentTab());

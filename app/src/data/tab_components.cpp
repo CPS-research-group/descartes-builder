@@ -101,11 +101,17 @@ bool TabComponents::open()
 
 bool TabComponents::openExisting()
 {
-    if (m_localFile.filePath().isEmpty())
+    if (m_localFile.filePath().isEmpty()) {
+        qWarning() << "File path is empty";
         return false;
+    }
+
     JlCompress::extractDir(m_localFile.absoluteFilePath(), m_dataDir.absolutePath());
-    if (!m_dataDir.exists(m_localFile.baseName() + SCENE_EXTENSION))
+    if (!m_dataDir.exists(m_localFile.baseName() + SCENE_EXTENSION)) {
+        qWarning() << "Scene file does not exist: "
+                   << m_dataDir.absoluteFilePath(m_localFile.baseName() + SCENE_EXTENSION);
         return false;
+    }
     return m_scene->load(m_dataDir.absoluteFilePath(m_localFile.baseName() + SCENE_EXTENSION));
 }
 
