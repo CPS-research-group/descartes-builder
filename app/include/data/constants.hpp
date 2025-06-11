@@ -26,10 +26,7 @@ constexpr uint INT_SPIN_BOX_MIN_WIDTH = 60;
 constexpr uint DOUBLE_SPIN_BOX_MAX_WIDTH = 80;
 constexpr uint DOUBLE_SPIN_BOX_MIN_WIDTH = 75;
 
-const uint SIDEBAR_PORT_ID_COL = 0;
-const uint SIDEBAR_PORT_CAPTION_COL = 1;
-const uint SIDEBAR_PORT_TYPEID_COL = 2;
-const uint SIDEBAR_PORT_TYPETAG_COL = 3;
+enum PortTableColIndex { COL_PORT_ID = 0, COL_TYPE_TAG, COL_ANNOTATION, COL_CAPTION };
 
 constexpr ConstLatin1String CONNECTION_STYLE =
     R"(

@@ -3,6 +3,7 @@
 #include "data/tab_manager.hpp"
 #include <QAbstractButton>
 #include <QFileInfo>
+#include <QJsonArray>
 #include <QMessageBox>
 
 FdfBlockModel::FdfBlockModel(FdfType type, const QString &name, const QString &functionName)
@@ -24,6 +25,22 @@ unsigned int FdfBlockModel::nPorts(PortType const portType) const
     if (portType == PortType::Out)
         return m_outPorts.size();
     return 0;
+}
+
+bool FdfBlockModel::hasDataOutPorts()
+{
+    for (const auto &port : m_outPorts)
+        if (std::dynamic_pointer_cast<DataNode>(port.first))
+            return true;
+    return false;
+}
+
+bool FdfBlockModel::hasFunctionOutPorts()
+{
+    for (const auto &port : m_outPorts)
+        if (std::dynamic_pointer_cast<FunctionNode>(port.first))
+            return true;
+    return false;
 }
 
 NodeDataType FdfBlockModel::dataType(PortType const portType, PortIndex const portIndex) const
@@ -122,6 +139,24 @@ QJsonObject FdfBlockModel::save() const
     for (auto parameter : getParameters())
         parameters[parameter.first] = parameter.second;
     modelJson["parameters"] = parameters;
+
+    // Save output ports
+    QJsonArray outputPortsJson;
+    for (size_t i = 0; i < m_outPorts.size(); ++i) {
+        QJsonObject portJson;
+        portJson["index"] = static_cast<int>(i);
+
+        if (auto dataPort = const_cast<FdfBlockModel *>(this)->castedPort<DataNode>(PortType::Out,
+                                                                                    i)) {
+            portJson["type_tag"] = dataPort->typeTagName();
+            portJson["annotation"] = dataPort->annotation();
+        } else if (auto funcPort = const_cast<FdfBlockModel *>(this)
+                                       ->castedPort<FunctionNode>(PortType::Out, i)) {
+            portJson["caption"] = funcPort->name();
+        }
+        outputPortsJson.append(portJson);
+    }
+    modelJson["output_ports"] = outputPortsJson;
     return modelJson;
 }
 

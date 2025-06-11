@@ -35,6 +35,7 @@ public:
 
 private slots:
     void onDataSourceImportClicked(const QtNodes::NodeId nodeId);
+    void postLoadProcess(const QJsonArray &nodesJsonArray);
 
 private:
     CustomGraph *m_graph;

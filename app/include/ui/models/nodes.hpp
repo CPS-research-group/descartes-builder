@@ -19,8 +19,10 @@ public:
     virtual QString id() { return m_type.id; }
     QString name() const { return m_type.name; }
     QString defaultName() const { return m_defaultName; }
-    void setName(const QString &name) { m_type.name = name; }
-    void setDefaultName(const QString &name) { m_defaultName = name; }
+    // In setter functions, sanitize the name silently to ensure it meets kedro requirements, and does not raise errors
+    // valid name characters are a-z, A-Z, 0-9, underscore (_), hyphen (-), and full stop (.)
+    void setName(const QString &name) { m_type.name = constants::sanitizeCaption(name); }
+    void setDefaultName(const QString &name) { m_defaultName = constants::sanitizeCaption(name); }
     void reset() { m_type.name = m_defaultName; }
     NodeDataType type() const override { return m_type; }
 

@@ -33,6 +33,8 @@ public:
     QString caption() const override { return m_caption; }
     virtual bool hasParameters() const { return getParameters().size() > 0; }
     unsigned int nPorts(PortType const portType) const override;
+    bool hasDataOutPorts();
+    bool hasFunctionOutPorts();
     NodeDataType dataType(PortType const portType, PortIndex const portIndex) const override;
     std::shared_ptr<NodeData> outData(PortIndex const index) override;
     virtual void setInData(std::shared_ptr<NodeData> data, PortIndex const index) override;
