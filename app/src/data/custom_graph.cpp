@@ -199,6 +199,16 @@ void CustomGraph::makeCaptionUnique(const QtNodes::NodeId &nodeId, FdfBlockModel
         block->setCaption(uniqueCaption);
 }
 
+FdfBlockModel *CustomGraph::getBlockByCaption(const QString &caption) const
+{
+    auto it = m_usedNodeCaptions.find(caption);
+    if (it != m_usedNodeCaptions.end()) {
+        auto nodeId = it->second;
+        return delegateModel<FdfBlockModel>(nodeId);
+    }
+    return nullptr;
+}
+
 void CustomGraph::makeOutPortsUnique(const QtNodes::NodeId &nodeId, FdfBlockModel *block)
 {
     auto portType = QtNodes::PortType::Out;

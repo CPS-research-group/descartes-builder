@@ -53,8 +53,10 @@ MainWindow::MainWindow()
     initLogPanel();
 
     setWindowTitle("DesCartes Builder");
-    setGeometry(QApplication::primaryScreen()->availableGeometry());
-    showMaximized();
+    if (qEnvironmentVariableIsEmpty("TEST_MODE")) {
+        setGeometry(QApplication::primaryScreen()->availableGeometry());
+        showMaximized();
+    }
     qInfo() << "Welcome to DesCartes Builder";
 }
 
@@ -132,8 +134,15 @@ void MainWindow::initScene()
             &AbstractEngine::finished,
             m_graphicsSceneTabWidget,
             &GraphicsSceneTabWidget::runFinished);
+    connect(m_engine.get(), &AbstractEngine::scoreYmlCreated, this, &MainWindow::scoreParameters);
 
     layout->addWidget(m_graphicsSceneTabWidget);
+}
+
+void MainWindow::scoreParameters(const QString &scoreParameters)
+{
+    // used for testing
+    emit scoreParams(scoreParameters);
 }
 
 void MainWindow::initMenuBar()

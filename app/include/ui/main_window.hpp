@@ -19,6 +19,7 @@ public:
     ~MainWindow();
     bool openDCB(const QString &fileName);
     bool executeDCB();
+    std::shared_ptr<TabManager> getTabManager() const { return m_tabManager; }
 
 public slots:
     void gridToggled(bool enabled);
@@ -28,6 +29,9 @@ private slots:
     void onBlockSelected(const uint &id);
     void onBlockUpdated(const uint &id);
 
+signals:
+    void scoreParams(const QString &scoreParams);
+
 private:
     void initManagers();
     // Ui inits
@@ -35,6 +39,7 @@ private:
     void initMenuBar();
     void initPrimarySideBar();
     void initLogPanel();
+    void scoreParameters(const QString &scorePath);
 
     void enableChartAction(bool state);
 

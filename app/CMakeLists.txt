@@ -89,19 +89,19 @@ if(QT_VERSION_MAJOR EQUAL 6)
   qt_finalize_executable(${PROJECT_NAME})
 endif()
 
-if(WIN32 AND WIN_DEPLOY)
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-  COMMAND "${CMAKE_PREFIX_PATH}/bin/windeployqt.exe"
-  "$<TARGET_FILE:${PROJECT_NAME}>"
-  COMMENT "Running windeployqt to deploy Qt dependencies..."
-  )
+function(deploy_qt_target target)
+  if(WIN32 AND WIN_DEPLOY)
+    add_custom_command(TARGET ${target} POST_BUILD
+      COMMAND "${CMAKE_PREFIX_PATH}/bin/windeployqt.exe"
+      "$<TARGET_FILE:${target}>")
+    add_custom_command(TARGET ${target} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy 
+    "${CMAKE_PREFIX_PATH}/bin/Qt6Core5Compat.dll" 
+    "$<TARGET_FILE_DIR:${target}>")
+  endif()
+endfunction()
 
-  add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-  COMMAND ${CMAKE_COMMAND} -E copy 
-  "${CMAKE_PREFIX_PATH}/bin/Qt6Core5Compat.dll" 
-  "$<TARGET_FILE_DIR:${PROJECT_NAME}>"
-  )
-endif()
+deploy_qt_target(${PROJECT_NAME})
 
 if(BUILD_TESTS)
   set(gtest_force_shared_crt
@@ -117,9 +117,17 @@ if(BUILD_TESTS)
 
   add_executable(unitTests ${TEST_SOURCES})
 
-  target_link_libraries(unitTests PRIVATE gtest ${PROJECT_NAME}_lib)
+  target_link_libraries(unitTests 
+  PRIVATE 
+  gtest 
+  ${PROJECT_NAME}_lib 
+  Qt${QT_VERSION_MAJOR}::Test 
+  Qt${QT_VERSION_MAJOR}::Core
+  Qt${QT_VERSION_MAJOR}::Widgets)
 
   add_test(NAME unitTests COMMAND unitTests)
+  set_tests_properties(unitTests PROPERTIES ENVIRONMENT "TEST_MODE=1")
+  deploy_qt_target(unitTests)
 endif()
 
 # Pack

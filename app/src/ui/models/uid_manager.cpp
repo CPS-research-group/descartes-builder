@@ -4,9 +4,6 @@
 #include "ui/models/nodes.hpp"
 #include <QDebug>
 
-const FdfUID UIDManager::NONE_ID = -1;
-const QString UIDManager::NONE_TAG = "type_none";
-
 UIDManager::UIDManager() {}
 
 FdfUID UIDManager::createUID()

@@ -32,6 +32,8 @@ TabComponents::TabComponents(QWidget *parent, std::optional<QFileInfo> fileInfo)
     , m_dataDir(m_dir->filePath("data"))
     , m_uidManager(std::make_unique<UIDManager>())
 {
+    // this is needed to keep the temp dir alive to avoid race condition during unit tests. This will eventually get deleted later by the os
+    m_dir->setAutoRemove(false);
     m_graph->setParent(parent);
     if (!m_dir->isValid())
         qCritical() << "Temp dir failed to init";

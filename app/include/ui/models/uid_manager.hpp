@@ -67,8 +67,8 @@ class CustomGraph;
 class UIDManager
 {
 public:
-    static const FdfUID NONE_ID;
-    static const QString NONE_TAG;
+    inline static const FdfUID NONE_ID = -1;
+    inline static const QString NONE_TAG = QStringLiteral("data_none");
     UIDManager();
     void setGraph(CustomGraph *tab_graph)
     {
@@ -82,7 +82,7 @@ public:
     ConnectionInfo getConnectionInfo(QtNodes::ConnectionId const connectionId) const;
 
 private:
-    CustomGraph *graph;
+    CustomGraph *graph = nullptr;
     // The maps from type id to human-readable tag (one-to-one, both are unique)
     std::map<FdfUID, QString> uidToTag = {{NONE_ID, NONE_TAG}};
     std::map<QString, FdfUID> tagToUid = {{NONE_TAG, NONE_ID}};

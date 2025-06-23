@@ -8,6 +8,7 @@
 
 #include <QtUtility/file/file.hpp>
 
+#include "data/yml_parser.hpp"
 #include <quazip/JlCompress.h>
 
 #include "data/constants.hpp"
@@ -58,6 +59,8 @@ QStringList getPortList(const FdfBlockModel &block, const PortType &type)
 QDir getKedroUmbrellaDir()
 { // Run a Python command to find kedro-umbrella's location
     QProcess process;
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    process.setProcessEnvironment(env);
     process.start("python",
                   QStringList() << "-c"
                                 << "import kedro_umbrella, os; "
@@ -67,7 +70,7 @@ QDir getKedroUmbrellaDir()
     QString kedroUmbrellaPath = process.readAllStandardOutput().trimmed();
     if (kedroUmbrellaPath.isEmpty()) {
         qCritical() << "Failed to locate kedro-umbrella package";
-        return QDir();
+        throw std::runtime_error("Failed to locate kedro-umbrella package");
     }
     qInfo() << "Using kedro_umbrella path :" << kedroUmbrellaPath;
     return QDir(kedroUmbrellaPath);
@@ -248,12 +251,7 @@ void Kedro::onExecutionFinished(int exitCode, QProcess::ExitStatus exitStatus)
         output += "\nERROR LOG:\n" + QString::fromUtf8(errorOutput);
 
     postExecutionProcess();
-
-    // compress dir to zip and cache to runtime dir
-    auto zip = QtUtility::file::getUniqueFile(
-        QFileInfo(m_runtimeCache.filePath(m_execution->tab->getFileInfo().baseName() + ".zip")));
-    if (JlCompress::compressDir(zip.absoluteFilePath(), m_execution->project.absolutePath()))
-        qDebug() << "Kedro executed, result is cached to: " << zip.absoluteFilePath();
+    qDebug() << "Kedro executed, result is stored in: " << m_execution->project.absolutePath();
     emit executed(output);
     releaseExecution();
     emit finished(true);
@@ -404,19 +402,16 @@ void Kedro::postScoreModel(CustomGraph *graph, const QtNodes::NodeId &id)
     if (reportDir.exists("score.yml")) {
         // parse score.yml
         // XXX HACKY PARSER
-        std::unordered_map<QString, QString> map;
         QFile yml(reportDir.absoluteFilePath("score.yml"));
         if (!yml.open(QIODevice::ReadOnly | QIODevice::Text)) {
             qWarning() << "Cannot open score.yml";
             return;
         }
-        for (auto &line : yml.readAll().split('\n')) {
-            auto pair = line.split(':');
-            if (pair.size() != 2)
-                continue;
-            map[pair.front().trimmed()] = pair.back().trimmed();
-        }
-        yml.close();
+        // this signal is used in unit tests
+        QString contents = QString::fromUtf8(yml.readAll());
+        emit scoreYmlCreated(contents);
+
+        std::unordered_map<QString, QString> map = parseYml(contents);
         score->setExecutedValues(map);
     }
 }

@@ -14,6 +14,7 @@ public:
     CustomGraph(std::shared_ptr<QtNodes::NodeDelegateModelRegistry> registry);
     std::vector<DataSourceModel *> getDataSourceModels() const;
     std::vector<FuncOutModel *> getFuncOutModels() const;
+    FdfBlockModel *getBlockByCaption(const QString &caption) const;
     bool connectionPossible(QtNodes::ConnectionId const connectionId) const override;
 
 signals:
