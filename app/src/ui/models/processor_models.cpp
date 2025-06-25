@@ -43,12 +43,32 @@ void ProcessorModel::setOutputPortNumber(uint num)
 SplitDataModel::SplitDataModel()
     : ProcessorModel("split_data", processor_function::SPLIT_DATA)
 {
-    addPort<DataNode>(PortType::In, "X");
-    addPort<DataNode>(PortType::In, "Y");
-    addPort<DataNode>(PortType::Out, "X_train");
-    addPort<DataNode>(PortType::Out, "X_test");
-    addPort<DataNode>(PortType::Out, "Y_train");
-    addPort<DataNode>(PortType::Out, "Y_test");
+    addPort<DataNode>(PortType::In);
+    addPort<DataNode>(PortType::In);
+
+    addPort<DataNode>(PortType::Out);
+    addPort<DataNode>(PortType::Out);
+    addPort<DataNode>(PortType::Out);
+    addPort<DataNode>(PortType::Out);
+
+    // Initialise the input and output data ports with placeholder captions
+    m_defaultTags = {"X", "Y"};
+    m_defaultAnnot = {"train", "test"};
+    for (int i = 0; i < 2; ++i) {
+        if (auto port = getInputPortAt<DataNode>(i)) {
+            port->setPlaceHolderCaption(m_defaultTags[i], "");
+        }
+    }
+
+    int index = 0;
+    for (auto &tag : m_defaultTags) {
+        for (auto annot : m_defaultAnnot) {
+            if (auto port = castedPort<DataNode>(PortType::Out, index)) {
+                port->setPlaceHolderCaption(tag, annot);
+            }
+            ++index;
+        }
+    }
 
     setRandomState(0);
 }
@@ -87,33 +107,35 @@ void SplitDataModel::setParameter(const QString &key, const QString &value)
 
 void SplitDataModel::onDataInputSet(const PortIndex &index)
 {
-    FdfUID target;
-    QString name;
+    FdfUID typeId = UIDManager::NONE_ID;
     if (auto data = castedPort<DataNode>(PortType::In, index)) {
-        target = data->typeId();
-        name = data->name();
+        typeId = data->typeId();
     }
-    setOutputType(index, target, name);
+    setOutputType(index, typeId);
 }
 
 void SplitDataModel::onDataInputReset(const PortIndex &index)
 {
-    setOutputType(index, UIDManager::NONE_ID, "");
+    setOutputType(index, UIDManager::NONE_ID);
 }
 
-void SplitDataModel::setOutputType(const PortIndex &inputIndex,
-                                   const FdfUID &typeId,
-                                   const QString &name)
+void SplitDataModel::setOutputType(const PortIndex &inputIndex, const FdfUID &typeId)
 {
     // hardcoded wiring from input to output
     std::unordered_map<PortIndex, std::vector<PortIndex>> relations = {{0, {0, 1}}, {1, {2, 3}}};
     for (auto &relatedIndex : relations.at(inputIndex)) {
-        auto port = castedPort<DataNode>(PortType::Out, relatedIndex);
-        port->setTypeId(typeId);
-        if ((relatedIndex) % 2 == 0)
-            port->setName(name + "_train");
-        else
-            port->setName(name + "_test");
+        QString annot = (relatedIndex % 2 == 0) ? m_defaultAnnot[0] : m_defaultAnnot[1];
+
+        auto outPort = castedPort<DataNode>(PortType::Out, relatedIndex);
+        outPort->setTypeId(typeId);
+        setPortTagAndAnnotation(PortType::Out, relatedIndex, outPort->typeTagName(), annot);
+
+        // Reset the input and output ports captions to placeholder values
+        if (typeId == UIDManager::NONE_ID) {
+            auto inPort = getInputPortAt<DataNode>(inputIndex);
+            inPort->setPlaceHolderCaption(m_defaultTags[inputIndex], "");
+            outPort->setPlaceHolderCaption(m_defaultTags[inputIndex], annot);
+        }
     }
 }
 
@@ -159,34 +181,51 @@ bool ExternalProcessorModel::portNumberModifiable(const PortType &portType) cons
     return false;
 }
 
+void ExternalProcessorModel::onDataInputReset(const PortIndex &index)
+{
+    auto uidManager = TabManager::getUIDManager();
+    if (!m_signature.inputs.empty() && index > 0 && index <= m_signature.inputs.size())
+        if (auto inPort = getInputPortAt<DataNode>(index))
+            inPort->setPlaceHolderCaption(uidManager->getTag(m_signature.inputs[index - 1]), "");
+}
+
 void ExternalProcessorModel::updateDataPortsWithSignature()
 {
+    auto uidManager = TabManager::getUIDManager();
     setPortNumber<DataNode>(PortType::In, m_signature.inputs.size());
-    // propagate the types from the function to the data port
     setPortNumber<DataNode>(PortType::Out, m_signature.outputs.size());
+    // set the input data ports with placeholder captions
+    for (int i = 0; i < m_signature.inputs.size(); i++) {
+        if (auto port = getInputPortAt<DataNode>(i + 1)) {
+            port->setPlaceHolderCaption(uidManager->getTag(m_signature.inputs[i]), "");
+        }
+    }
+    // propagate the types from the function to the data port
     for (int i = 0; i < m_signature.outputs.size(); ++i) {
         auto port = castedPort<DataNode>(PortType::Out, i);
         port->setTypeId(m_signature.outputs.at(i));
+        setPortTagAndAnnotation(PortType::Out, i, port->typeTagName(), port->annotation());
     }
 }
 
 ScoreModel::ScoreModel()
     : ProcessorModel("score", processor_function::SCORE)
 {
-    addPort<DataNode>(PortType::In, "Y_test");
-    addPort<DataNode>(PortType::In, "Y_pred");
+    addPort<DataNode>(PortType::In);
+    addPort<DataNode>(PortType::In);
+
     addPort<DataNode>(PortType::Out, "nrmse");
     addPort<DataNode>(PortType::Out, "r2");
 
+    // Initialise the input data ports with placeholder captions
+    m_defaultTags = {"Y_test", "Y_pred"};
+    for (int i = 0; i < 2; ++i) {
+        if (auto port = getInputPortAt<DataNode>(i)) {
+            port->setPlaceHolderCaption(m_defaultTags[i], "");
+        }
+    }
+
     setPlot(Plot::Regression);
-    auto uidManager = TabManager::instance().getCurrentUIDManager();
-    if (!uidManager) {
-        qWarning() << "UIDManager is null!";
-        return;
-    }
-    for (auto &port : allOutData<DataNode>()) {
-        port->setTypeId(uidManager->createUID());
-    }
 }
 
 std::unordered_map<QString, QString> ScoreModel::getParameters() const
@@ -229,35 +268,61 @@ bool ScoreModel::canConnect(ConnectionInfo &connInfo) const
     return true;
 }
 
+void ScoreModel::onDataInputReset(const PortIndex &index)
+{
+    if (auto inPort = getInputPortAt<DataNode>(index))
+        inPort->setPlaceHolderCaption(m_defaultTags[index], "");
+}
+
 DifferenceModel::DifferenceModel()
     : ProcessorModel("difference", processor_function::DIFFERENCE)
 {
-    addPort<DataNode>(PortType::In, "a");
-    addPort<DataNode>(PortType::In, "b");
-    addPort<DataNode>(PortType::Out, "a-b");
+    addPort<DataNode>(PortType::In);
+    addPort<DataNode>(PortType::In);
+    addPort<DataNode>(PortType::Out);
+
+    // Initialise the input and output data ports with placeholder captions
+    m_defaultTags = {"a"};
+    m_defaultAnnot = {"1", "2"};
+    for (int i = 0; i < 2; ++i) {
+        if (auto port = getInputPortAt<DataNode>(i)) {
+            port->setPlaceHolderCaption(m_defaultTags[0], m_defaultAnnot[i]);
+        }
+    }
+    if (auto port = castedPort<DataNode>(PortType::Out, 0))
+        port->setPlaceHolderCaption(m_defaultTags[0], "diff");
 }
 
 void DifferenceModel::onDataInputSet(const PortIndex &index)
 {
-    FdfUID target;
+    FdfUID typeId;
     if (auto data = castedPort<DataNode>(PortType::In, index)) {
-        target = data->typeId();
-        setOutputTypeId(0, target);
+        typeId = data->typeId();
+        setOutputTypeId(0, typeId);
     }
 }
 
 void DifferenceModel::onDataInputReset(const PortIndex &index)
 {
+    // reset the disconnected data input to its placeholder text
+    if (auto inPort = getInputPortAt<DataNode>(index))
+        inPort->setPlaceHolderCaption(m_defaultTags[0], m_defaultAnnot[index]);
+
     //reset the output port id to NONE if both the inputs are reset
     PortIndex other = (index == 0) ? 1 : 0;
-    if (!castedPort<DataNode>(PortType::In, other))
+    if (!castedPort<DataNode>(PortType::In, other)) {
         setOutputTypeId(0, UIDManager::NONE_ID);
+    }
 }
 
 void DifferenceModel::setOutputTypeId(const PortIndex &inputIndex, const FdfUID &typeId)
 {
-    if (auto port = castedPort<DataNode>(PortType::Out, inputIndex))
+    if (auto port = castedPort<DataNode>(PortType::Out, inputIndex)) {
         port->setTypeId(typeId);
+        setPortTagAndAnnotation(PortType::Out, inputIndex, port->typeTagName(), port->annotation());
+        if (typeId == UIDManager::NONE_ID)
+            port->setPlaceHolderCaption(m_defaultTags[0], "diff");
+    }
 }
 
 bool DifferenceModel::canConnect(ConnectionInfo &connInfo) const
@@ -330,34 +395,30 @@ void SensitivityAnalysisModel::updateDataPortsWithSignature()
     // Set the total number of output ports based on inputs and outputs
     setPortNumber<DataNode>(PortType::Out,
                             (m_signature.inputs.size() + m_signature.outputs.size()) * 2);
-
     int outputPortIndex = 0;
 
     // Set the types of X1 and X2 ports with the trainer input type
     if (!m_signature.inputs.empty()) {
         FdfUID trainerInputType = m_signature.inputs[0];
-        if (auto port = castedPort<DataNode>(PortType::Out, outputPortIndex))
-            port->setTypeId(trainerInputType);
-        if (auto port = castedPort<DataNode>(PortType::Out, outputPortIndex + 1))
-            port->setTypeId(trainerInputType);
+        for (; outputPortIndex < 2; outputPortIndex++) {
+            setOutputTypeId(outputPortIndex, trainerInputType);
+        }
     }
-
-    outputPortIndex += 2;
-
     // Set the types of Y1 and Y2 ports with the trainer output type
     if (!m_signature.outputs.empty()) {
         FdfUID trainerOutputType = m_signature.outputs[0];
-        if (auto port = castedPort<DataNode>(PortType::Out, outputPortIndex))
-            port->setTypeId(trainerOutputType);
-        if (auto port = castedPort<DataNode>(PortType::Out, outputPortIndex + 1))
-            port->setTypeId(trainerOutputType);
+        for (; outputPortIndex < 4; outputPortIndex++) {
+            setOutputTypeId(outputPortIndex, trainerOutputType);
+        }
     }
 }
 
 void SensitivityAnalysisModel::setOutputTypeId(const PortIndex &inputIndex, const FdfUID &typeId)
 {
-    if (auto port = castedPort<DataNode>(PortType::Out, inputIndex))
+    if (auto port = castedPort<DataNode>(PortType::Out, inputIndex)) {
         port->setTypeId(typeId);
+        setPortTagAndAnnotation(PortType::Out, inputIndex, port->typeTagName(), port->annotation());
+    }
 }
 
 bool SensitivityAnalysisModel::canConnect(ConnectionInfo &connInfo) const

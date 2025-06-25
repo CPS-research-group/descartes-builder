@@ -8,8 +8,56 @@ on:
     branches: ["main"]
 
 jobs:
-  build:
-    if: github.event.pull_request.draft == false
+  ubuntu:
+    if: github.event_name == 'pull_request' && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        build_type: [Release]
+        qt_version: ["6.4.0"]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Setup back-end
+        run: make setup_backend
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ matrix.qt_version }}
+          modules: qt5compat
+          setup-python: false
+          cache: true
+
+      - name: Install dependencies (Ubuntu)
+        run: sudo apt-get install -y libxkbcommon-dev libgl1-mesa-dev
+
+      - name: Configure CMake
+        run: |
+          cmake -B build \
+                -D CMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+                -S ${{ github.workspace }}/app
+
+      - name: Build
+        run: cmake --build build --config ${{ matrix.build_type }}
+
+      - name: Test
+        run: |
+          export QT_QPA_PLATFORM=offscreen
+          cd build && ctest --output-on-failure
+
+  ubuntu-mac-windows:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -33,33 +81,40 @@ jobs:
         with:
           submodules: "recursive"
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
+          cache: "pip"
+
+      - name: Setup back-end
+        run: |
+          make setup_backend
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ matrix.qt_version }}
           modules: 'qt5compat'
+          setup-python: 'false'
           cache: 'true'
 
       - name: Setup (Ubuntu)
-        if: startsWith (matrix.os, 'ubuntu')
-        run: sudo apt-get install libxkbcommon-dev libgl1-mesa-dev
+        if: startsWith(matrix.os, 'ubuntu')
+        run: sudo apt-get install -y libxkbcommon-dev libgl1-mesa-dev
 
       - name: Setup VS tools (Windows)
-        if: startsWith (matrix.os, 'windows')
+        if: startsWith(matrix.os, 'windows')
         uses: egor-tensin/vs-shell@v2
         with:
           arch: x64
 
       - name: Setup (Windows)
-        if: startsWith (matrix.os, 'windows')
+        if: startsWith(matrix.os, 'windows')
         run: |
           & $env:VCPKG_INSTALLATION_ROOT\vcpkg install zlib bzip2
 
-      - name: Configure CMake
+      - name: Configure CMake (Ubuntu/macOS)
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         run: |
           cmake -B build \
@@ -77,6 +132,16 @@ jobs:
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }}
 
-      - name: Test
-        working-directory: ${{ steps.strings.outputs.build-output-dir }}
-        run: ctest --build-config ${{ matrix.build_type }}
+      - name: Test (Linux/macOS)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: |
+          export QT_QPA_PLATFORM=offscreen
+          cd build && ctest --output-on-failure
+
+      - name: Test (Windows)
+        if: startsWith(matrix.os, 'windows')
+        shell: cmd
+        run: |
+          set QT_QPA_PLATFORM=offscreen
+          cd build
+          ctest --output-on-failure

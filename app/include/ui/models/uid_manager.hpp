@@ -67,8 +67,8 @@ class CustomGraph;
 class UIDManager
 {
 public:
-    static const FdfUID NONE_ID;
-    static const QString NONE_TAG;
+    inline static const FdfUID NONE_ID = -1;
+    inline static const QString NONE_TAG = QStringLiteral("data_none");
     UIDManager();
     void setGraph(CustomGraph *tab_graph)
     {
@@ -76,13 +76,15 @@ public:
             graph = tab_graph;
     }
     FdfUID createUID();
+    FdfUID createUID(QString tag); // creates a new UID based on the tag passed
     FdfUID getUid(const QString &tag) const;
     QString getTag(const FdfUID &uid) const;
     void updateMap(FdfUID &uid, QString &tag);
     ConnectionInfo getConnectionInfo(QtNodes::ConnectionId const connectionId) const;
+    QString getUniqueTag(QString tag);
 
 private:
-    CustomGraph *graph;
+    CustomGraph *graph = nullptr;
     // The maps from type id to human-readable tag (one-to-one, both are unique)
     std::map<FdfUID, QString> uidToTag = {{NONE_ID, NONE_TAG}};
     std::map<QString, FdfUID> tagToUid = {{NONE_TAG, NONE_ID}};
@@ -90,6 +92,7 @@ private:
     void overrideType(FdfUID removeType, FdfUID keepType);
     bool replaceTypesInUIDVector(std::vector<FdfUID> &vec, FdfUID keepType, FdfUID removeType);
     void displayMaps() const;
+    void refreshDisplayNames();
     // TODO Later : Add map to store coder models to check the following :-
     // 1. iff all the Coder parameter are the same ^ all input types are same ->
     // we could reuse an existing type (T2 == T3).

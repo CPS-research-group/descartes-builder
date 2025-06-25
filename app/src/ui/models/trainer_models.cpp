@@ -15,7 +15,9 @@ std::unordered_map<Model, QString> MODEL_STRING = {
 TrainerModel::TrainerModel(const QString &name, const QString &functionName)
     : FdfBlockModel(FdfType::Trainer, name, functionName)
     , m_signature({{UIDManager::NONE_ID}, {UIDManager::NONE_ID}})
-{}
+{
+    m_defaultTags = {"X", "Y"};
+}
 
 bool TrainerModel::portNumberModifiable(const PortType &portType) const
 {
@@ -64,6 +66,10 @@ void TrainerModel::onDataInputSet(const PortIndex &index)
 
 void TrainerModel::onDataInputReset(const PortIndex &index)
 {
+    // reset the unconnected data input to the placeholder text
+    if (auto inPort = getInputPortAt<DataNode>(index))
+        inPort->setPlaceHolderCaption(m_defaultTags[index], "");
+
     m_signature.update(index, UIDManager::NONE_ID);
     if (auto function = castedPort<FunctionNode>(PortType::Out, 0))
         function->setSignature(m_signature);
@@ -71,12 +77,11 @@ void TrainerModel::onDataInputReset(const PortIndex &index)
 
 void TrainerModel::updateSignature()
 {
-    std::vector<FdfUID> inputTypeIds;
     for (PortIndex i = 0; i < nPorts(PortType::In); ++i) {
-        FdfUID typeId = UIDManager::NONE_ID;
-        if (auto data = castedPort<DataNode>(PortType::In, i))
-            typeId = data->typeId();
-        m_signature.update(i, typeId);
+        if (auto data = castedPort<DataNode>(PortType::In, i)) {
+            FdfUID typeId = data->typeId();
+            m_signature.update(i, typeId);
+        }
     }
     if (auto function = castedPort<FunctionNode>(PortType::Out, 0))
         function->setSignature(m_signature);
@@ -87,7 +92,15 @@ BasicTrainerModel::BasicTrainerModel()
 {
     addPort<DataNode>(PortType::In);
     addPort<DataNode>(PortType::In);
+
     addPort<FunctionNode>(PortType::Out, "predict");
+
+    // Initialise the input data ports with placeholder captions
+    for (int i = 0; i < 2; ++i) {
+        if (auto port = getInputPortAt<DataNode>(i)) {
+            port->setPlaceHolderCaption(m_defaultTags[i], "");
+        }
+    }
 
     setModel(Model::Mlp);
     setRandomState(0);
@@ -169,7 +182,15 @@ TorchTrainerModel::TorchTrainerModel()
 {
     addPort<DataNode>(PortType::In);
     addPort<DataNode>(PortType::In);
+
     addPort<FunctionNode>(PortType::Out, "model");
+
+    // Initialise the input data ports with placeholder captions
+    for (int i = 0; i < 2; ++i) {
+        if (auto port = getInputPortAt<DataNode>(i)) {
+            port->setPlaceHolderCaption(m_defaultTags[i], "");
+        }
+    }
 }
 
 std::unordered_map<QString, QString> TorchTrainerModel::getParameters() const

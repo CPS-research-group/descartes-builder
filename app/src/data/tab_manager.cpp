@@ -98,9 +98,11 @@ UIDManager *TabManager::getCurrentUIDManager() const
 {
     if (auto tab = getCurrentTab()) {
         // return the underlying pointer here; the calling fn should not delete/reassign this
-        return tab->getUIDManager().get();
+        return tab->getTabUIDManager().get();
     }
-    return nullptr;
+    // a throw-away UIDManager
+    static UIDManager fallback;
+    return &fallback;
 }
 
 void TabManager::clear()

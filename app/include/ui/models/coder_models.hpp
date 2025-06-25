@@ -20,6 +20,11 @@ public:
     virtual std::unordered_map<QString, QMetaType::Type> getParameterSchema() const override;
     virtual bool portNumberModifiable(const PortType &portType) const override;
     virtual uint minModifiablePorts(const PortType &portType, const QString &typeId) const override;
+    virtual std::vector<FdfUID> fetchOrCreateOutputType(const std::vector<FdfUID> &inputTypeIds) = 0;
+
+protected:
+    // A given set of input types should always return the same output type
+    std::map<std::vector<FdfUID>, std::vector<FdfUID>> m_typeMap;
 
 public slots:
     virtual void setInputPortNumber(uint num) override;
@@ -36,6 +41,7 @@ public:
     virtual void setParameter(const QString &key, const QString &value) override;
     virtual void onDataInputSet(const PortIndex &index) override;
     virtual void onDataInputReset(const PortIndex &index) override;
+    std::vector<FdfUID> fetchOrCreateOutputType(const std::vector<FdfUID> &inputTypeIds) override;
 
 private:
     Process m_process;
@@ -56,8 +62,8 @@ public:
     virtual void setParameter(const QString &key, const QString &value) override;
     virtual void onDataInputSet(const PortIndex &index) override;
     virtual void onDataInputReset(const PortIndex &index) override;
+    std::vector<FdfUID> fetchOrCreateOutputType(const std::vector<FdfUID> &inputTypeIds) override;
 
-private:
 private:
     Process m_process;
     std::optional<int> m_randomState;

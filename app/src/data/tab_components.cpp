@@ -2,9 +2,11 @@
 #include "data/tab_manager.hpp"
 #include <QDebug>
 #include <QFileDialog>
+#include <QJsonArray>
 #include <QStandardPaths>
 
 #include <QtNodes/DagGraphicsScene>
+#include <QtNodes/DirectedAcyclicGraphModel>
 #include <QtNodes/GraphicsView>
 
 #include <quazip/JlCompress.h>
@@ -14,6 +16,7 @@
 #include "ui/models/io_models.hpp"
 
 using QtNodes::DagGraphicsScene;
+using QtNodes::DirectedAcyclicGraphModel;
 using QtNodes::GraphicsView;
 
 namespace {
@@ -29,6 +32,8 @@ TabComponents::TabComponents(QWidget *parent, std::optional<QFileInfo> fileInfo)
     , m_dataDir(m_dir->filePath("data"))
     , m_uidManager(std::make_unique<UIDManager>())
 {
+    // this is needed to keep the temp dir alive to avoid race condition during unit tests. This will eventually get deleted later by the os
+    m_dir->setAutoRemove(false);
     m_graph->setParent(parent);
     if (!m_dir->isValid())
         qCritical() << "Temp dir failed to init";
@@ -37,6 +42,10 @@ TabComponents::TabComponents(QWidget *parent, std::optional<QFileInfo> fileInfo)
     // touch pad seems to trigger touch events, so touch events are disabled to supress the bug
     m_view->viewport()->setAttribute(Qt::WA_AcceptTouchEvents, false);
     m_uidManager->setGraph(m_graph);
+    connect(m_graph,
+            &DirectedAcyclicGraphModel::graphLoadedFromFile,
+            this,
+            &TabComponents::postLoadProcess);
     connect(m_scene, &DagGraphicsScene::sceneLoaded, m_view, &GraphicsView::centerScene);
     if (parent)
         QObject::connect(m_scene, &DagGraphicsScene::modified, parent, [parent]() {
@@ -101,11 +110,17 @@ bool TabComponents::open()
 
 bool TabComponents::openExisting()
 {
-    if (m_localFile.filePath().isEmpty())
+    if (m_localFile.filePath().isEmpty()) {
+        qWarning() << "File path is empty";
         return false;
+    }
+
     JlCompress::extractDir(m_localFile.absoluteFilePath(), m_dataDir.absolutePath());
-    if (!m_dataDir.exists(m_localFile.baseName() + SCENE_EXTENSION))
+    if (!m_dataDir.exists(m_localFile.baseName() + SCENE_EXTENSION)) {
+        qWarning() << "Scene file does not exist: "
+                   << m_dataDir.absoluteFilePath(m_localFile.baseName() + SCENE_EXTENSION);
         return false;
+    }
     return m_scene->load(m_dataDir.absoluteFilePath(m_localFile.baseName() + SCENE_EXTENSION));
 }
 
@@ -128,4 +143,58 @@ void TabComponents::onDataSourceImportClicked(const QtNodes::NodeId nodeId)
     if (oldFile.exists())
         QFile::remove(oldFile.absoluteFilePath());
     dataSource->setFile(newFile);
+}
+
+void TabComponents::postLoadProcess(const QJsonArray &nodesJsonArray)
+{
+    // This function is called after the graph is loaded from a file. It reloads the type tags
+    // and annotations for the output ports of the nodes based on the saved JSON data.
+    if (nodesJsonArray.isEmpty()) {
+        qWarning() << "No nodes found in the loaded graph.";
+        return;
+    }
+
+    auto findById = [](const QJsonArray &array, int idToFind) -> QJsonObject {
+        for (const QJsonValue &value : array) {
+            if (value.isObject()) {
+                QJsonObject obj = value.toObject();
+                if (obj.contains("id") && obj["id"].toInt() == idToFind) {
+                    return obj;
+                }
+            }
+        }
+        return QJsonObject();
+    };
+
+    for (const auto &id : m_graph->allNodeIds()) {
+        QJsonObject nodeJson = findById(nodesJsonArray, id);
+        if (nodeJson.isEmpty()) {
+            qWarning() << "Node with ID" << id << "not found in the loaded graph.";
+            continue;
+        }
+        auto block = m_graph->delegateModel<FdfBlockModel>(id);
+        if (!block) {
+            continue;
+        }
+
+        QJsonArray outputPorts = nodeJson["internal-data"].toObject()["output_ports"].toArray();
+        for (const auto &outputPort : outputPorts) {
+            QJsonObject portJson = outputPort.toObject();
+            int index = portJson["index"].toInt();
+
+            if (index >= 0 && static_cast<size_t>(index) < block->nPorts(PortType::Out)) {
+                if (auto port = std::dynamic_pointer_cast<DataNode>(block->outData(index))) {
+                    port->setAnnotation(portJson["annotation"].toString());
+                    port->setTypeTagName(portJson["type_tag"].toString());
+                    // Ensure output ports have unique captions after loading
+                    Q_EMIT block->outPortCaptionUpdated(index, port->name());
+                } else if (auto port = std::dynamic_pointer_cast<FunctionNode>(
+                               block->outData(index))) {
+                    port->setName(portJson["caption"].toString());
+                    // Ensure output ports have unique captions after loading
+                    Q_EMIT block->outPortCaptionUpdated(index, port->name());
+                }
+            }
+        }
+    }
 }

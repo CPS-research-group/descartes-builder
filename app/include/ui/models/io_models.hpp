@@ -32,12 +32,10 @@ public:
     QString fileTypeString() const;
     void setFile(const QFileInfo &file);
     static QString fileFilter();
+    QString outPortCaption();
 
 signals:
     void importClicked();
-
-private slots:
-    void updatePortCaption(const QString &name);
 
 private:
     QWidget *m_widget;

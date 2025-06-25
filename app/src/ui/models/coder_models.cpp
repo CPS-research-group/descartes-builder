@@ -89,26 +89,38 @@ void TransformDataModel::setParameter(const QString &key, const QString &value)
     }
 }
 
+std::vector<FdfUID> TransformDataModel::fetchOrCreateOutputType(
+    const std::vector<FdfUID> &inputTypeIds)
+{
+    auto uidManager = TabManager::getUIDManager();
+
+    // For any given inputs of types 't1, t2, t3', any two xforms
+    // shall produce functions that generate fresh new output types with
+    // the same dimensionality as inputs (tnew, tnew, tnew) and (tnew1, tnew2, tnew3)
+    auto it = m_typeMap.find(inputTypeIds);
+    if (it != m_typeMap.end())
+        return it->second;
+    std::vector<FdfUID> outputTypeIds;
+    for (const auto &inputTypeId : inputTypeIds) {
+        auto outputType = uidManager->createUID();
+        outputTypeIds.push_back(outputType);
+    }
+    m_typeMap[inputTypeIds] = outputTypeIds;
+    return outputTypeIds;
+}
+
 // Set the inputs to a particular index
 void TransformDataModel::onDataInputSet(const PortIndex &index)
 {
     Q_UNUSED(index);
-    auto uidManager = TabManager::instance().getCurrentUIDManager();
-    if (!uidManager) {
-        qWarning() << "UIDManager is null!";
-        return;
-    }
-    // For any given inputs of types 't1, t2, t3', any two xforms
-    // shall produce functions that generate fresh new output types with
-    // the same dimensionality as inputs (tnew, tnew, tnew) and (tnew1, tnew2, tnew3)
+    auto uidManager = TabManager::getUIDManager();
 
     std::vector<FdfUID> inputTypeIds, outputTypeIds;
     for (int i = 0; i < nPorts(PortType::In); ++i)
         if (auto data = castedPort<DataNode>(PortType::In, i)) {
             inputTypeIds.push_back(data->typeId());
-            outputTypeIds.push_back(uidManager->createUID());
         }
-
+    outputTypeIds = fetchOrCreateOutputType(inputTypeIds);
     // Set encode/decode function type
     Signature signature;
     signature.inputs = inputTypeIds;
@@ -166,6 +178,20 @@ void ReduceDataModel::setParameter(const QString &key, const QString &value)
     }
 }
 
+std::vector<FdfUID> ReduceDataModel::fetchOrCreateOutputType(const std::vector<FdfUID> &inputTypeIds)
+{
+    auto uidManager = TabManager::getUIDManager();
+
+    // For any given inputs of types 't1, t2, t3', any two reducers
+    // shall produce functions that generate fresh new output types (tnew) and (tnew2)
+    auto it = m_typeMap.find(inputTypeIds);
+    if (it != m_typeMap.end())
+        return it->second;
+    FdfUID outputType = uidManager->createUID();
+    m_typeMap[inputTypeIds] = {outputType};
+    return {outputType};
+}
+
 // Set the inputs to a particular index
 void ReduceDataModel::onDataInputSet(const PortIndex &index)
 {
@@ -177,18 +203,11 @@ void ReduceDataModel::onDataInputSet(const PortIndex &index)
         if (auto data = castedPort<DataNode>(PortType::In, i))
             inputTypeIds.push_back(data->typeId());
 
-    // For any given inputs of types 't1, t2, t3', any two reducers
-    // shall produce functions that generate fresh new output types (tnew) and (tnew2)
-    auto uidManager = TabManager::instance().getCurrentUIDManager();
-    if (!uidManager) {
-        qWarning() << "UIDManager is null!";
-        return;
-    }
-    FdfUID outputType = uidManager->createUID();
+    auto uidManager = TabManager::getUIDManager();
     // Set encode/decode function type
     Signature signature;
     signature.inputs = inputTypeIds;
-    signature.outputs = {outputType};
+    signature.outputs = fetchOrCreateOutputType(inputTypeIds);
     if (auto encode = castedPort<FunctionNode>(PortType::Out, 0))
         encode->setSignature(signature);
     // set decode to the inverse

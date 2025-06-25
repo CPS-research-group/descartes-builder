@@ -23,6 +23,7 @@ signals:
     void started();
     void finished(bool success);
     void executed(const QString &output);
+    void scoreYmlCreated(const QString &scoreContents); // used for unit tests
 
 protected:
     void setExecutionError(const QString &error) { m_executionError = error; }
