@@ -20,6 +20,16 @@ class SplitDataModel : public ProcessorModel
 {
     Q_OBJECT
 public:
+    /**
+    * @brief Constructs the SplitDataModel object.
+    * 
+    * This constructor initializes the SplitDataModel, which splits the input data into 
+    * test and train datasets. It adds two input ports and four output ports, where:
+    * - The first two output ports correspond to the first input data type.
+    * - The latter two output ports correspond to the second input data type.
+    * 
+    * The output ports are annotated to indicate their intended usage for training or testing.
+    */
     SplitDataModel();
     // need to be true even if parameters is empty
     virtual bool hasParameters() const override { return true; }
@@ -39,8 +49,7 @@ public slots:
 
 private:
     // define the output type for a given input type
-    void setOutputType(const PortIndex &inputIndex, const FdfUID &typeId, const QString &name);
-
+    void setOutputType(const PortIndex &inputIndex, const FdfUID &typeId);
     inline static const QString RANDOM_STATE = "random_state";
     inline static const QString SPLIT_TIME = "split_time";
     inline static const QString TRAIN_SIZE = "train_size";
@@ -55,12 +64,20 @@ class ExternalProcessorModel : public ProcessorModel
 {
     Q_OBJECT
 public:
+    /**
+ * @brief Constructs the ExternalProcessorModel object.
+ * 
+ * This constructor initializes the ExternalProcessorModel, with an input function
+ * port. This model serves to process the incoming data, based on the connected
+ * function, and produces output(s) based on the passed function signature.
+ */
     ExternalProcessorModel();
     virtual bool canConnect(ConnectionInfo &connInfo) const override;
 
 public slots:
     virtual void onFunctionInputSet(const PortIndex &index) override;
     virtual void onFunctionInputReset(const PortIndex &index) override;
+    virtual void onDataInputReset(const PortIndex &index) override;
     virtual bool portNumberModifiable(const PortType &portType) const override;
 
 private:
@@ -76,13 +93,20 @@ public:
         Regression,
         TimeSeries,
     };
-
+    /**
+ * @brief Constructs the ScoreModel object.
+ * 
+ * This constructor initializes the ScoreModel with 2 data inputs, and 
+ * 2 data outputs. This model calculates the Root Mean Squared Error and 
+ * the R Squared Error values based on the passed inputs. 
+ */
     ScoreModel();
     virtual std::unordered_map<QString, QString> getParameters() const override;
     virtual std::unordered_map<QString, QMetaType::Type> getParameterSchema() const override;
     virtual QStringList getParameterOptions(const QString &key) const override;
     virtual void setParameter(const QString &key, const QString &value) override;
     virtual bool canConnect(ConnectionInfo &connInfo) const override;
+    virtual void onDataInputReset(const PortIndex &index) override;
 
     std::optional<Plot> getPlot() const { return m_plot; }
     void setPlot(const std::optional<Plot> &plot) { m_plot = plot; }
@@ -97,6 +121,13 @@ class SensitivityAnalysisModel : public ProcessorModel
 {
     Q_OBJECT
 public:
+    /**
+ * @brief Constructs the SensitivityAnalysisModel object.
+ * 
+ * This constructor initializes the SensitivityAnalysisModel with 1 function input.
+ * This model serves to produce result on sensitivity based on the connected
+ * function, and produces output(s) based on the passed function signature.
+ */
     SensitivityAnalysisModel();
 
     virtual bool hasParameters() const override { return true; }
@@ -126,6 +157,13 @@ class DifferenceModel : public ProcessorModel
 {
     Q_OBJECT
 public:
+    /**
+ * @brief Constructs the DifferenceModel object.
+ * 
+ * This constructor initializes the DifferenceModel with 2 data inputs, and 
+ * 1 data output. This model calculates the difference data 
+ * based on the passed inputs. 
+ */
     DifferenceModel();
     virtual void onDataInputSet(const PortIndex &index) override;
     virtual void onDataInputReset(const PortIndex &index);

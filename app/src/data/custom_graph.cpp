@@ -64,11 +64,7 @@ bool CustomGraph::connectionPossible(QtNodes::ConnectionId const connectionId) c
         return true; // Ignore connection check if mouse is still pressed
     }
 
-    auto uidManager = TabManager::instance().getCurrentUIDManager();
-    if (!uidManager) {
-        qWarning() << "UIDManager is null!";
-        return false;
-    }
+    auto uidManager = TabManager::getUIDManager();
     ConnectionInfo connInfo = uidManager->getConnectionInfo(connectionId);
     if (auto block = delegateModel<FdfBlockModel>(connInfo.inNodeId)) {
         auto result = block->canConnect(connInfo);
@@ -192,11 +188,21 @@ void CustomGraph::makeCaptionUnique(const QtNodes::NodeId &nodeId, FdfBlockModel
         removeByValue(m_usedNodeCaptions, nodeId);
     }
     while (m_usedNodeCaptions.count(uniqueCaption) > 0)
-        uniqueCaption = QString("%1 %2").arg(block->caption(), QString::number(++counter));
+        uniqueCaption = QString("%1_%2").arg(block->caption(), QString::number(++counter));
     m_usedNodeCaptions[uniqueCaption] = nodeId;
     m_trackedNodes.insert(nodeId);
     if (block->caption() != uniqueCaption)
         block->setCaption(uniqueCaption);
+}
+
+FdfBlockModel *CustomGraph::getBlockByCaption(const QString &caption) const
+{
+    auto it = m_usedNodeCaptions.find(caption);
+    if (it != m_usedNodeCaptions.end()) {
+        auto nodeId = it->second;
+        return delegateModel<FdfBlockModel>(nodeId);
+    }
+    return nullptr;
 }
 
 void CustomGraph::makeOutPortsUnique(const QtNodes::NodeId &nodeId, FdfBlockModel *block)
@@ -212,7 +218,7 @@ void CustomGraph::makeOutPortsUnique(const QtNodes::NodeId &nodeId,
                                      const PortIndex &index)
 {
     auto portType = QtNodes::PortType::Out;
-    const auto ORIGINAL_NAME = block->defaultPortCaption(portType, index);
+    const auto ORIGINAL_NAME = block->portCaption(portType, index);
     uint counter = 1;
 
     if (m_trackedNodes.count(nodeId) > 0) {
@@ -224,11 +230,8 @@ void CustomGraph::makeOutPortsUnique(const QtNodes::NodeId &nodeId,
     }
     auto uniqueName = ORIGINAL_NAME;
     while (m_usedOutPortCaptions.count(uniqueName) > 0) {
-        uniqueName = QString("%1 %2").arg(ORIGINAL_NAME, QString::number(++counter));
+        uniqueName = QString("%1_%2").arg(ORIGINAL_NAME, QString::number(++counter));
     }
     m_usedOutPortCaptions[uniqueName] = std::make_pair(nodeId, index);
-    if (ORIGINAL_NAME != uniqueName) {
-        block->setPortDefaultCaption(portType, index, uniqueName);
-        block->resetPortCaption(portType, index);
-    }
+    block->setPortCaption(portType, index, uniqueName);
 }

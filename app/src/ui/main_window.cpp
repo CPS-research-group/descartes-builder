@@ -53,8 +53,10 @@ MainWindow::MainWindow()
     initLogPanel();
 
     setWindowTitle("DesCartes Builder");
-    setGeometry(QApplication::primaryScreen()->availableGeometry());
-    showMaximized();
+    if (qEnvironmentVariableIsEmpty("TEST_MODE")) {
+        setGeometry(QApplication::primaryScreen()->availableGeometry());
+        showMaximized();
+    }
     qInfo() << "Welcome to DesCartes Builder";
 }
 
@@ -67,6 +69,16 @@ MainWindow::~MainWindow()
                &MainWindow::onBlockSelected);
     m_tabManager->clear();
     qInfo() << "Program has finished.";
+}
+
+bool MainWindow::openDCB(const QString &filePath)
+{
+    return m_tabManager->openFrom(filePath);
+}
+
+bool MainWindow::executeDCB()
+{
+    return callExecute();
 }
 
 bool MainWindow::callExecute()
@@ -98,7 +110,7 @@ void MainWindow::initManagers()
 void MainWindow::initScene()
 {
     ConnectionStyle::setConnectionStyle(constants::CONNECTION_STYLE);
-    GraphicsViewStyle::setStyle(constants::GRAPHICS_VIEW_STYLE);
+    GraphicsViewStyle::setStyle(constants::GRAPHICS_VIEW_STYLE_GRID);
     NodeStyle::setNodeStyle(constants::NODE_STYLE);
 
     m_centralWidget = new QWidget();
@@ -122,8 +134,15 @@ void MainWindow::initScene()
             &AbstractEngine::finished,
             m_graphicsSceneTabWidget,
             &GraphicsSceneTabWidget::runFinished);
+    connect(m_engine.get(), &AbstractEngine::scoreYmlCreated, this, &MainWindow::scoreParameters);
 
     layout->addWidget(m_graphicsSceneTabWidget);
+}
+
+void MainWindow::scoreParameters(const QString &scoreParameters)
+{
+    // used for testing
+    emit scoreParams(scoreParameters);
 }
 
 void MainWindow::initMenuBar()
@@ -183,7 +202,6 @@ void MainWindow::initMenuBar()
             });
     connect(runAction, &QAction::triggered, this, &MainWindow::callExecute);
 
-#ifdef DEBUG
     { // temp menu for testing code
         QMenu *tempMenu = menuBar->addMenu("Temp");
         auto infoAction = tempMenu->addAction("print info");
@@ -213,7 +231,6 @@ void MainWindow::initMenuBar()
         });
         openMagnet->setShortcut(QKeyCombination(Qt::ControlModifier | Qt::ShiftModifier, Qt::Key_M));
     }
-#endif
 }
 
 void MainWindow::initPrimarySideBar()
@@ -239,7 +256,7 @@ void MainWindow::initPrimarySideBar()
         {SideBarAction::Settings,
          QtUtility::media::recolor(QIcon(":/settings.png"), constants::COLOR_SECONDARY),
          "Settings",
-         new Settings},
+         new Settings(this)},
         {SideBarAction::Information,
          QtUtility::media::recolor(QIcon(":/information.png"), constants::COLOR_SECONDARY),
          "Information",
@@ -291,4 +308,21 @@ void MainWindow::enableChartAction(bool state)
     action->setToolTip(tooltip);
     if (!state && action->isChecked()) // if currently at charts and we disable it, switch to blocks
         m_sidebarActions.at(SideBarAction::Blocks)->trigger();
+}
+
+void MainWindow::gridToggled(bool enabled)
+{
+    if (auto *view = m_tabManager->currentView()) {
+        if (enabled) {
+            GraphicsViewStyle::setStyle(constants::GRAPHICS_VIEW_STYLE_GRID);
+        } else {
+            GraphicsViewStyle::setStyle(constants::GRAPHICS_VIEW_STYLE_PLAIN);
+        }
+        if (auto *scene = qobject_cast<QtNodes::BasicGraphicsScene *>(view->scene())) {
+            QRect visibleRect = view->viewport()->rect();
+            QRectF visibleSceneRect = view->mapToScene(visibleRect).boundingRect();
+            scene->invalidate(visibleSceneRect, QGraphicsScene::BackgroundLayer);
+            view->viewport()->update();
+        }
+    }
 }

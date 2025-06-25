@@ -2,6 +2,7 @@
 
 #include <QColor>
 
+#include <QRegularExpression>
 #include <QtNodes/NodeData>
 #include <QtUtility/data/constexpr_qstring.hpp>
 
@@ -25,10 +26,7 @@ constexpr uint INT_SPIN_BOX_MIN_WIDTH = 60;
 constexpr uint DOUBLE_SPIN_BOX_MAX_WIDTH = 80;
 constexpr uint DOUBLE_SPIN_BOX_MIN_WIDTH = 75;
 
-const uint SIDEBAR_PORT_ID_COL = 0;
-const uint SIDEBAR_PORT_CAPTION_COL = 1;
-const uint SIDEBAR_PORT_TYPEID_COL = 2;
-const uint SIDEBAR_PORT_TYPETAG_COL = 3;
+enum PortTableColIndex { COL_PORT_ID = 0, COL_TYPE_TAG, COL_ANNOTATION, COL_CAPTION };
 
 constexpr ConstLatin1String CONNECTION_STYLE =
     R"(
@@ -48,7 +46,7 @@ constexpr ConstLatin1String CONNECTION_STYLE =
             }
         }
         )";
-constexpr ConstLatin1String GRAPHICS_VIEW_STYLE =
+constexpr ConstLatin1String GRAPHICS_VIEW_STYLE_GRID =
     R"(
         {
             "GraphicsViewStyle": {
@@ -58,6 +56,17 @@ constexpr ConstLatin1String GRAPHICS_VIEW_STYLE =
             }
         }
     )";
+constexpr ConstLatin1String GRAPHICS_VIEW_STYLE_PLAIN =
+    R"(
+        {
+            "GraphicsViewStyle": {
+                "BackgroundColor": "white",
+                "FineGridColor": "transparent",
+                "CoarseGridColor": "transparent"
+            }
+        }
+    )";
+
 constexpr ConstLatin1String NODE_STYLE =
     R"(
         {
@@ -98,6 +107,14 @@ inline bool isFunctionNode(QtNodes::NodeDataType node)
 inline bool isDataNode(QtNodes::NodeDataType node)
 {
     return node.id == constants::DATA_PORT_ID;
+}
+
+inline QString sanitizeCaption(const QString &caption)
+{
+    QRegularExpression invalidCharsRegex("[^a-zA-Z0-9._-]+");
+    QString result = caption;
+    result.replace(invalidCharsRegex, ""); // silently remove invalid characters
+    return result;
 }
 
 // Define a named constant for the red color used in function port styling
