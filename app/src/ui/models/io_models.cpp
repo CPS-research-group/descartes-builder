@@ -73,8 +73,8 @@ void DataSourceModel::load(QJsonObject const &p)
 {
     FdfBlockModel::load(p);
     QJsonValue value = p["data-name"];
-
-    if (value.isUndefined())
+    QString filePath = value.toString();
+    if (value.isUndefined() || filePath.trimmed().isEmpty())
         return;
 
     setFile(QFileInfo(value.toString()));
@@ -89,6 +89,8 @@ QString DataSourceModel::fileTypeString() const
 
 void DataSourceModel::setFile(const QFileInfo &file)
 {
+    if (file.fileName().trimmed().isEmpty())
+        return;
     if (file == m_file)
         return;
     m_file = file;

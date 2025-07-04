@@ -141,6 +141,18 @@ bool TabComponents::openExisting()
 
 void TabComponents::onDataSourceImportClicked(const QtNodes::NodeId nodeId)
 {
+    // Check if node has data imported already, if so, do not allow re-import
+    auto dataSource = m_graph->delegateModel<DataSourceModel>(nodeId);
+    if (!dataSource->file().fileName().isEmpty()) {
+        QMessageBox::information(
+            nullptr,
+            tr("Import Not Allowed"),
+            QString("Cannot re-import data into an already-initialized data_source. \n"
+                    "File: %1")
+                .arg(dataSource->file().fileName()));
+
+        return;
+    }
     QFileInfo originalFile(
         QFileDialog::getOpenFileName(nullptr,
                                      tr("Import Data Source"),
@@ -153,7 +165,6 @@ void TabComponents::onDataSourceImportClicked(const QtNodes::NodeId nodeId)
     QFileInfo newFile(m_dataDir.absoluteFilePath(originalFile.fileName()));
     // move to temp dir
     QFile::copy(originalFile.absoluteFilePath(), newFile.absoluteFilePath());
-    auto dataSource = m_graph->delegateModel<DataSourceModel>(nodeId);
     QFileInfo oldFile(m_dataDir.absoluteFilePath(dataSource->file().fileName()));
     if (oldFile.exists())
         QFile::remove(oldFile.absoluteFilePath());
