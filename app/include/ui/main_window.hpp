@@ -8,6 +8,7 @@ class TabManager;
 class BlockManager;
 class QAction;
 class Temp;
+class TabComponents;
 
 class MainWindow : public QMainWindow
 {
@@ -39,6 +40,7 @@ private:
     void initMenuBar();
     void initPrimarySideBar();
     void initLogPanel();
+    bool validateTab(std::shared_ptr<TabComponents> &tab);
     void scoreParameters(const QString &scorePath);
 
     void enableChartAction(bool state);

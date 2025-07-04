@@ -6,6 +6,7 @@
 #include <QDockWidget>
 #include <QLabel>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QScreen>
 #include <QToolBar>
 #include <QVBoxLayout>
@@ -25,6 +26,7 @@ using QtNodes::NodeStyle;
 
 #include "data/block_manager.hpp"
 #include "data/constants.hpp"
+#include "data/tab_components.hpp"
 #include "data/tab_manager.hpp"
 #include "engine/engine_starter.hpp"
 #include "temp.hpp"
@@ -83,7 +85,44 @@ bool MainWindow::executeDCB()
 
 bool MainWindow::callExecute()
 {
-    return m_engine->execute(m_tabManager->getCurrentTab());
+    auto currentTab = m_tabManager->getCurrentTab();
+    if (!currentTab) {
+        qWarning() << "No tab to execute";
+        return false;
+    }
+    if (!validateTab(currentTab)) {
+        return false;
+    }
+    return m_engine->execute(currentTab);
+}
+
+bool MainWindow::validateTab(std::shared_ptr<TabComponents> &tab)
+{
+    if (!tab) {
+        qWarning() << "No tab to verify";
+        return false;
+    }
+    // Save silently if tab has a file associated with already
+    if (!tab->isNewFile()) {
+        if (!m_tabManager->save()) {
+            qWarning() << "Save failed";
+            return false;
+        }
+    } else {
+        QMessageBox::StandardButton reply
+            = QMessageBox::question(this,
+                                    "Save Before Run",
+                                    "Pipeline has to be saved for run. Do you want to save it now?",
+                                    QMessageBox::Yes | QMessageBox::Cancel);
+
+        if (reply == QMessageBox::Yes) {
+            if (!m_tabManager->saveAs()) {
+                return false;
+            }
+        } else
+            return false;
+    }
+    return true;
 }
 
 void MainWindow::onBlockSelected(const uint &id)

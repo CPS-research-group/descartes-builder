@@ -46,7 +46,8 @@ std::vector<DataSourceModel *> CustomGraph::getDataSourceModels() const
 {
     std::vector<DataSourceModel *> result;
     for (auto &id : m_dataSourceNodes)
-        result.push_back(delegateModel<DataSourceModel>(id));
+        if (auto model = delegateModel<DataSourceModel>(id))
+            result.push_back(model);
     return result;
 }
 
@@ -147,13 +148,9 @@ void CustomGraph::onNodeDeleted(const QtNodes::NodeId nodeId)
 {
     removeByValue(m_usedNodeCaptions, nodeId);
     removeByPairFirst(m_usedOutPortCaptions, nodeId);
-
-    auto block = delegateModel<FdfBlockModel>(nodeId);
-    if (!block)
-        return;
-    if (block->name() == io_names::DATA_SOURCE)
+    if (m_dataSourceNodes.find(nodeId) != m_dataSourceNodes.end())
         m_dataSourceNodes.erase(nodeId);
-    else if (block->name() == io_names::FUNC_OUT)
+    if (m_funcOutNodes.find(nodeId) != m_funcOutNodes.end())
         m_funcOutNodes.erase(nodeId);
     m_trackedNodes.erase(nodeId);
 }
@@ -241,4 +238,19 @@ void CustomGraph::makeOutPortsUnique(const QtNodes::NodeId &nodeId,
         block->setPortDefaultCaption(portType, index, uniqueName);
         block->resetPortCaption(portType, index);
     }
+}
+
+bool CustomGraph::verifyBlocksValidity() const
+{
+    for (const auto &nodeId : allNodeIds()) {
+        auto block = delegateModel<FdfBlockModel>(nodeId);
+        if (!block) {
+            qWarning() << "Block with ID" << nodeId << "is not a valid FdfBlockModel.";
+            continue;
+        }
+        if (!block->checkBlockValidity()) {
+            return false;
+        }
+    }
+    return true;
 }

@@ -32,6 +32,9 @@ public:
     bool saveAs();
     bool open();
     bool openExisting();
+    bool isNewFile() const;
+    bool isValidProjectName(const QString &name);
+    QString getBasename() const;
 
 private slots:
     void onDataSourceImportClicked(const QtNodes::NodeId nodeId);

@@ -190,8 +190,11 @@ bool Kedro::validityCheck(std::shared_ptr<TabComponents> tab)
         qWarning() << "The blocks in the graph are not connected";
         return false;
     }
-    // TODO: add check that every node input is connected
-    // TODO: add check that every node is "ready" e.g. data source has imported something
+    // Add check that every node input is connected
+    if (!graph->verifyBlocksValidity()) {
+        qWarning() << "Some blocks in the graph are not valid, please check the connections";
+        return false;
+    }
     qInfo() << "Passed validity checks!";
     return true;
 }

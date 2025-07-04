@@ -96,6 +96,21 @@ QWidget *FdfBlockModel::embeddedWidget()
     return m_label;
 }
 
+bool FdfBlockModel::checkBlockValidity() const
+{
+    // check if all input ports are connected.
+    int index = 0;
+    for (const auto &portPair : m_inPorts) {
+        if (!portPair.second.lock()) {
+            qWarning() << "Input port at index " << index << " of block " << this->caption()
+                       << " is not connected.";
+            return false;
+        }
+        index++;
+    }
+    return true;
+}
+
 QString FdfBlockModel::portCaption(PortType portType, PortIndex portIndex) const
 {
     if (!indexCheck(portType, portIndex))

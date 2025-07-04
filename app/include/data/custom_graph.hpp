@@ -16,6 +16,11 @@ public:
     std::vector<FuncOutModel *> getFuncOutModels() const;
     FdfBlockModel *getBlockByCaption(const QString &caption) const;
     bool connectionPossible(QtNodes::ConnectionId const connectionId) const override;
+    // rename out ports that are duplicates
+    void makeOutPortsUnique(const QtNodes::NodeId &nodeId,
+                            FdfBlockModel *block,
+                            const QtNodes::PortIndex &index);
+    bool verifyBlocksValidity() const;
 
 signals:
     void dataSourceModelImportClicked(const QtNodes::NodeId nodeId);

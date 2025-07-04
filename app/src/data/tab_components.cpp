@@ -3,6 +3,7 @@
 #include <QDebug>
 #include <QFileDialog>
 #include <QJsonArray>
+#include <QMessageBox>
 #include <QStandardPaths>
 
 #include <QtNodes/DagGraphicsScene>
@@ -79,6 +80,13 @@ bool TabComponents::save()
     return true;
 }
 
+bool TabComponents::isValidProjectName(const QString &name)
+{
+    // must be at least 2 characters long and can contain letters, numbers, spaces, underscores, or hyphens
+    static const QRegularExpression namePattern("^[\\w\\s-]{2,}$");
+    return namePattern.match(name).hasMatch();
+}
+
 bool TabComponents::saveAs()
 {
     QFileInfo newFile(
@@ -91,6 +99,13 @@ bool TabComponents::saveAs()
         return false; // dialog cancelled
     if (newFile.suffix().compare(FILE_EXTENSION, Qt::CaseInsensitive) != 0)
         newFile.setFile(newFile.dir(), newFile.baseName() + '.' + FILE_EXTENSION);
+    QString baseName = newFile.baseName();
+    if (!isValidProjectName(baseName)) {
+        QMessageBox::warning(nullptr,
+                             tr("Invalid File Name"),
+                             tr("The file name must be at least 2 characters long."));
+        return false;
+    }
     m_localFile.setFile(newFile.absoluteFilePath());
     return save();
 }
@@ -197,4 +212,14 @@ void TabComponents::postLoadProcess(const QJsonArray &nodesJsonArray)
             }
         }
     }
+}
+
+bool TabComponents::isNewFile() const
+{
+    return m_localFile.filePath().isEmpty();
+}
+
+QString TabComponents::getBasename() const
+{
+    return m_localFile.baseName();
 }

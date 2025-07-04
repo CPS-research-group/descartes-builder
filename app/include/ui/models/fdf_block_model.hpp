@@ -52,6 +52,7 @@ public:
     bool setPortDefaultCaption(PortType type, PortIndex index, const QString &caption);
     bool resetPortCaption(PortType portType, PortIndex portIndex);
     void propagateUpdate();
+    virtual bool checkBlockValidity() const;
 
     virtual std::shared_ptr<NodeData> inData(PortIndex const index);
     virtual std::unordered_map<QString, QString> getParameters() const;

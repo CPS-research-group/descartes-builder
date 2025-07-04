@@ -51,6 +51,7 @@ SplitDataModel::SplitDataModel()
     addPort<DataNode>(PortType::Out, "Y_test");
 
     setRandomState(0);
+    setTrainSize(0.7);
 }
 
 std::unordered_map<QString, QString> SplitDataModel::getParameters() const

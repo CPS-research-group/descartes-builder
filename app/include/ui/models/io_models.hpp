@@ -32,6 +32,8 @@ public:
     QString fileTypeString() const;
     void setFile(const QFileInfo &file);
     static QString fileFilter();
+    QString outPortCaption();
+    bool checkBlockValidity() const override;
 
 signals:
     void importClicked();
