@@ -56,12 +56,31 @@ QStringList getPortList(const FdfBlockModel &block, const PortType &type)
     return result;
 }
 
-QDir getKedroUmbrellaDir()
+QString getPythonExecutable()
+{
+    /*
+    * Check if the application has been installed 
+    * through installer. If so use the python executable 
+    * from python_win directory.
+    * Else use the system python.
+    */
+    QDir baseDir = QDir(QApplication::applicationDirPath());
+    baseDir.cdUp(); // Go to the parent directory of the application dir
+    QString pythonExec = baseDir.filePath("python_win\\python.exe");
+
+    qDebug() << "Checking for Python executable at:" << pythonExec;
+    if (QFile::exists(pythonExec)) {
+        qInfo() << "Using Python executable from python:" << pythonExec;
+        return pythonExec;
+    }
+    qInfo() << "Using system Python executable";
+    return QString("python"); // Fallback to system Python
+}
+
+QDir getKedroUmbrellaDir(QString const &pythonExecutable)
 { // Run a Python command to find kedro-umbrella's location
     QProcess process;
-    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-    process.setProcessEnvironment(env);
-    process.start("python",
+    process.start(pythonExecutable,
                   QStringList() << "-c"
                                 << "import kedro_umbrella, os; "
                                    "print(os.path.dirname(kedro_umbrella.__file__))");
@@ -108,7 +127,8 @@ int timeoutMinutes()
 Kedro::Kedro()
     : m_WINDOWS(IS_WINDOWS)
     , m_setup(false)
-    , m_KEDRO_UMBRELLA_DIR(getKedroUmbrellaDir())
+    , m_PYTHON_EXECUTABLE(getPythonExecutable())
+    , m_KEDRO_UMBRELLA_DIR(getKedroUmbrellaDir(m_PYTHON_EXECUTABLE))
     , m_execution(std::make_unique<ExecutionBundle>())
     , m_DEFAULT_TEMPLATE(m_KEDRO_UMBRELLA_DIR.absoluteFilePath("template/builder-spring/"))
 {
@@ -119,13 +139,8 @@ Kedro::Kedro()
     env.insert("COLUMNS", "200");
     env.insert("LINES", "25");
     m_execution->process.setProcessEnvironment(env); // this is for kedro logger to print better
-#if IS_WINDOWS
-    m_execution->process.setProgram("python");
+    m_execution->process.setProgram(m_PYTHON_EXECUTABLE);
     m_execution->process.setArguments({"-m", "kedro", "run"});
-#else
-    m_execution->process.setProgram("kedro");
-    m_execution->process.setArguments({"run"});
-#endif
     m_execution->timer.setSingleShot(true);
 
     verifySetup();
@@ -213,14 +228,19 @@ QDir Kedro::initWorkspace(std::shared_ptr<TabComponents> tab)
     qInfo() << "Creating workspace " << workspaceDir.absolutePath();
     QProcess workspaceProcess;
     workspaceProcess.setWorkingDirectory(kedroDir.absolutePath());
-    QString command;
-#if IS_WINDOWS
-    command = QString("cmd.exe /C echo %1 | python -m kedro new -s %2").arg(name, m_DEFAULT_TEMPLATE);
-#else
-    command = QString("bash -c \"echo %1 | kedro new -s %2\"")
-                  .arg(singleQuote(name), singleQuote(m_DEFAULT_TEMPLATE));
-#endif
-    workspaceProcess.startCommand(command);
+
+    QStringList args = {"-m", "kedro", "new", "-s", m_DEFAULT_TEMPLATE};
+    qInfo() << "Running command:" << m_PYTHON_EXECUTABLE << args;
+    workspaceProcess.setProgram(m_PYTHON_EXECUTABLE);
+    workspaceProcess.setArguments(args);
+    workspaceProcess.start();
+
+    if (!workspaceProcess.waitForStarted()) {
+        qCritical() << "Failed to start Kedro process.";
+        return QDir();
+    }
+    workspaceProcess.write(name.toUtf8() + '\n');
+    workspaceProcess.closeWriteChannel();
     if (!workspaceProcess.waitForFinished()) {
         qCritical() << "Failed to create workspace " << name;
         return QDir();

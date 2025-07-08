@@ -36,6 +36,7 @@ private:
 
     const bool m_WINDOWS;
     bool m_setup;
+    const QString m_PYTHON_EXECUTABLE;
     const QDir m_KEDRO_UMBRELLA_DIR;
     QTemporaryDir m_runtimeCache;
     struct ExecutionBundle
