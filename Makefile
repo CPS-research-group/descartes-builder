@@ -4,7 +4,7 @@ build:
 
 setup_backend: 
 	git clone https://github.com/CPS-research-group/kedro-umbrella.git
-	cd kedro-umbrella && pip install -e .
+	cd kedro-umbrella && pip install --extra-index-url https://download.pytorch.org/whl/cpu .
 
 test:
 	cd build && QT_QPA_PLATFORM=offscreen ctest --output-on-failure
