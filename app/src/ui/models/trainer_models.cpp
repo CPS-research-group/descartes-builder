@@ -5,8 +5,6 @@ namespace {
 using Model = BasicTrainerModel::Model;
 std::unordered_map<Model, QString> MODEL_STRING = {
     {Model::Mlp, "mlp"},
-    {Model::Mlp1, "mlp1"},
-    {Model::Mlp2, "mlp2"},
     {Model::Lr, "lr"},
     {Model::Dt, "dt"},
     {Model::Svr, "svr"},
@@ -112,7 +110,7 @@ std::unordered_map<QString, QString> BasicTrainerModel::getParameters() const
     result[MODEL] = MODEL_STRING.at(m_model);
     auto rs = getRandomState();
     result[RANDOM_STATE] = rs ? QString::number(*rs) : QString::number(0);
-    if (m_model == Model::Mlp2 && m_hiddenLayerSizes) {
+    if (m_model == Model::Mlp && m_hiddenLayerSizes) {
         result[HIDDEN_LAYER_SIZES] = vectorToString(*m_hiddenLayerSizes);
     }
     return result;
@@ -154,7 +152,7 @@ void BasicTrainerModel::setModel(const Model &model)
     if (m_model == model)
         return;
     m_model = model;
-    if (m_model == Model::Mlp2) {
+    if (m_model == Model::Mlp) {
         if (!m_hiddenLayerSizes)
             m_hiddenLayerSizes = std::vector<int>();
     } else if (m_hiddenLayerSizes)

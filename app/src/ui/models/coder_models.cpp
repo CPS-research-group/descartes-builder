@@ -24,6 +24,7 @@ std::unordered_map<QString, QMetaType::Type> CoderModel::getParameterSchema() co
 {
     std::unordered_map<QString, QMetaType::Type> schema;
     schema[PROCESS] = QMetaType::QString;
+    schema[NUM_COMPONENTS] = QMetaType::Double;
     return schema;
 }
 
@@ -147,6 +148,7 @@ std::unordered_map<QString, QString> ReduceDataModel::getParameters() const
 {
     std::unordered_map<QString, QString> result;
     result[PROCESS] = REDUCE_STRING.at(m_process);
+    result[NUM_COMPONENTS] = QString::number(m_numComponents);
     auto rs = getRandomState();
     result[RANDOM_STATE] = rs ? QString::number(*rs) : QString::number(0);
     return result;
@@ -168,6 +170,8 @@ void ReduceDataModel::setParameter(const QString &key, const QString &value)
         for (auto pair : REDUCE_STRING)
             if (pair.second == value)
                 setProcess(pair.first);
+    } else if (key == NUM_COMPONENTS) {
+        setNumComponents(value.toDouble());
     }
 }
 

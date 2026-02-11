@@ -33,8 +33,6 @@ class BasicTrainerModel : public TrainerModel
 public:
     enum Model {
         Mlp,
-        Mlp1,
-        Mlp2,
         Lr,
         Dt,
         Svr,
@@ -59,7 +57,7 @@ private:
     inline static const QString HIDDEN_LAYER_SIZES = "hidden_layer_sizes";
 
     Model m_model;
-    // only for mlp2
+    // only for mlp
     std::optional<std::vector<int>> m_hiddenLayerSizes;
 };
 

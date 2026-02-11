@@ -1,6 +1,7 @@
 [Setup]
 AppName=DescartesBuilder
-AppVersion=0.2
+AppVersion=0.2.1
+UninstallDisplayName=DescartesBuilder
 DefaultDirName={autopf}\DescartesBuilder
 DefaultGroupName=DescartesBuilder
 OutputBaseFilename=DescartesBuilderInstaller

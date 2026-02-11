@@ -14,6 +14,7 @@ public:
         StdPca,
     };
     inline static const QString PROCESS = "data_xform";
+    inline static const QString NUM_COMPONENTS = "num_components";
     inline static const QString RANDOM_STATE = "random_state";
 
     CoderModel(const QString &name, const QString &functionName);
@@ -65,4 +66,8 @@ private:
     Process m_process;
     Process getProcess() const { return m_process; }
     void setProcess(const Process &dataXform) { m_process = dataXform; }
+
+    double m_numComponents = 0.99;
+    double getNumComponents() const { return m_numComponents; }
+    void setNumComponents(double numComponents) { m_numComponents = numComponents; }
 };

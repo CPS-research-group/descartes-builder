@@ -192,7 +192,7 @@ void Blocks::initGlobals()
     layout->setContentsMargins(0, 0, 0, 0);
     m_randomStateSpinBox->setRange(0, std::numeric_limits<int>::max());
     m_randomStateSpinBox->setMaximumWidth(constants::INT_SPIN_BOX_MAX_WIDTH);
-    layout->addRow(new QLabel("Random State:"), m_randomStateSpinBox);
+    layout->addRow(new QLabel("Random Seed:"), m_randomStateSpinBox);
     m_globals->setWidget(widget);
 
     connect(m_tabManager.get(), &TabManager::currentChanged, this, [this](QWidget *) {
