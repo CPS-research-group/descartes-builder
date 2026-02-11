@@ -1,7 +1,8 @@
-# Descartes Builder
-
-![Logo](app/resources/descartes_logo.png)
 [![build descartes-builder](https://github.com/CPS-research-group/descartes-builder/actions/workflows/cmake_build.yml/badge.svg)](https://github.com/CPS-research-group/descartes-builder/actions/workflows/cmake_build.yml)
+
+# Descartes Builder
+![Logo](app/resources/descartes_logo.png)
+
 
 DesCartes Builder is a tool to create digital twin (DT) pipelines using the Function+Data Flow (FDF) domain-specific language for machine-learning-based DT modeling. It provides three high-level features:
 
