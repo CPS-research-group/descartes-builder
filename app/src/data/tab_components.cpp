@@ -44,6 +44,8 @@ TabComponents::TabComponents(QWidget *parent, std::optional<QFileInfo> fileInfo)
     // touch pad seems to trigger touch events, so touch events are disabled to supress the bug
     m_view->viewport()->setAttribute(Qt::WA_AcceptTouchEvents, false);
     m_uidManager->setGraph(m_graph);
+    m_scene->setDataDir(m_dataDir);
+
     connect(m_graph,
             &DirectedAcyclicGraphModel::graphLoadedFromFile,
             this,

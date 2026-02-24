@@ -57,6 +57,16 @@ target_link_libraries(
 
 qt_add_executable(${PROJECT_NAME} MANUAL_FINALIZATION main.cpp)
 
+if (WIN32 AND WIN_DEPLOY)
+    target_sources(${PROJECT_NAME} PRIVATE resources/tool_icon.rc)
+endif()
+if(APPLE)
+    set(MACOSX_BUNDLE_ICON_FILE "resources/tool_logo.icns")
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_ICON_FILE "resources/tool_logo.icns"
+    )
+endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_lib)
 
 target_compile_options(

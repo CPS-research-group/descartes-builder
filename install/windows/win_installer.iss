@@ -1,6 +1,7 @@
 [Setup]
 AppName=DescartesBuilder
-AppVersion=0.2.1
+AppVersion=0.2.2
+SetupIconFile=..\..\app\resources\tool_logo.ico
 UninstallDisplayName=DescartesBuilder
 DefaultDirName={autopf}\DescartesBuilder
 DefaultGroupName=DescartesBuilder

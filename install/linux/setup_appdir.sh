@@ -63,4 +63,4 @@ Type=Application
 Categories=Utility;
 EOF
 
-cp app/resources/charts.png "$APPDIR/${APP_NAME}.png"
+cp app/resources/tool_logo.png "$APPDIR/${APP_NAME}.png"

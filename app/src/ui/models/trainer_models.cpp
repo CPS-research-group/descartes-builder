@@ -3,6 +3,13 @@
 #include "ui/models/function_names.hpp"
 namespace {
 using Model = BasicTrainerModel::Model;
+std::unordered_map<Model, QString> MODEL_UI_STRING = {
+    {Model::Mlp, "Multi-layer Perceptron"},
+    {Model::Lr, "Linear Regression"},
+    {Model::Dt, "Decision Tree"},
+    {Model::Svr, "Support Vector Regression"},
+};
+
 std::unordered_map<Model, QString> MODEL_STRING = {
     {Model::Mlp, "mlp"},
     {Model::Lr, "lr"},
@@ -108,6 +115,7 @@ std::unordered_map<QString, QString> BasicTrainerModel::getParameters() const
 {
     std::unordered_map<QString, QString> result;
     result[MODEL] = MODEL_STRING.at(m_model);
+    result[MODEL_UI] = MODEL_UI_STRING.at(m_model);
     auto rs = getRandomState();
     result[RANDOM_STATE] = rs ? QString::number(*rs) : QString::number(0);
     if (m_model == Model::Mlp && m_hiddenLayerSizes) {
@@ -119,7 +127,7 @@ std::unordered_map<QString, QString> BasicTrainerModel::getParameters() const
 std::unordered_map<QString, QMetaType::Type> BasicTrainerModel::getParameterSchema() const
 {
     std::unordered_map<QString, QMetaType::Type> schema;
-    schema[MODEL] = QMetaType::QString;
+    schema[MODEL_UI] = QMetaType::QString;
     schema[HIDDEN_LAYER_SIZES] = QMetaType::QVariantList;
     return schema;
 }
@@ -127,8 +135,8 @@ std::unordered_map<QString, QMetaType::Type> BasicTrainerModel::getParameterSche
 QStringList BasicTrainerModel::getParameterOptions(const QString &key) const
 {
     QStringList result;
-    if (key == MODEL) {
-        for (auto pair : MODEL_STRING)
+    if (key == MODEL_UI) {
+        for (auto pair : MODEL_UI_STRING)
             result << pair.second;
     }
     return result;
@@ -136,8 +144,8 @@ QStringList BasicTrainerModel::getParameterOptions(const QString &key) const
 
 void BasicTrainerModel::setParameter(const QString &key, const QString &value)
 {
-    if (key == MODEL) {
-        for (auto pair : MODEL_STRING)
+    if (key == MODEL_UI) {
+        for (auto pair : MODEL_UI_STRING)
             if (pair.second == value) {
                 setModel(pair.first);
                 break;

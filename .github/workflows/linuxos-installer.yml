@@ -3,6 +3,9 @@ name: Build Linux AppImage
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-linux:
     runs-on: ubuntu-22.04
@@ -58,8 +61,12 @@ jobs:
         # mkdir -p release/examples
         # cp examples/pipe* release/examples/
 
-    - name: Upload AppImage
-      uses: actions/upload-artifact@v4
+    - name: Create nightly release
+      uses: softprops/action-gh-release@v2
       with:
-        name: DescartesBuilder-Linux-AppImage
-        path: release/*
+        tag_name: nightly
+        name: Nightly Build
+        body: Automated nightly build
+        prerelease: true
+        make_latest: false
+        files: release/*

@@ -3,6 +3,9 @@ name: Build Windows Installer
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   windows-installer:
     runs-on: windows-latest
@@ -76,10 +79,14 @@ jobs:
         install_latest: "true"
 
     # ----------------------------------------
-    # Publish artifact
+    # Create nightly release
     # ----------------------------------------
-    - name: Upload Windows Installer
-      uses: actions/upload-artifact@v4
+    - name: Create nightly release
+      uses: softprops/action-gh-release@v2
       with:
-        name: DescartesBuilder-Windows-Installer
-        path: app/build_win/bin/DescartesBuilder_WinInstaller.exe
+        tag_name: nightly
+        name: Nightly Build
+        body: Automated nightly build
+        prerelease: true
+        make_latest: false
+        files: app/build_win/bin/DescartesBuilder_WinInstaller.exe

@@ -3,6 +3,9 @@ name: Build macOS Installer
 on:  
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:  
   build-macos: 
     runs-on: macos-latest
@@ -59,6 +62,12 @@ jobs:
     # -------------------------------
     # Step 5: Deploy Qt dependencies
     # -------------------------------
+
+    - name: Copy .icns to app bundle
+      working-directory: ./app/build
+      run: |
+        mkdir -p bin/DescartesBuilder.app/Contents/Resources
+        cp ../resources/tool_logo.icns bin/DescartesBuilder.app/Contents/Resources/
     - name: Deploy Qt dependencies
       working-directory: ./app/build
       run: |
@@ -115,11 +124,14 @@ jobs:
         rm -rf "$TMP_DIR"
 
     # -------------------------------
-    # Step 10: Upload DMG artifact for testing
+    # Step 10: Create nightly release
     # -------------------------------
-    - name: Upload DMG artifact
-      uses: actions/upload-artifact@v4
+    - name: Create nightly release
+      uses: softprops/action-gh-release@v2
       with:
-        name: DescartesBuilder-macOS
-        path: app/build/DescartesBuilder-macOS.dmg
-        retention-days: 30
+        tag_name: nightly
+        name: Nightly Build
+        body: Automated nightly build
+        prerelease: true
+        make_latest: false
+        files: app/build/DescartesBuilder-macOS.dmg

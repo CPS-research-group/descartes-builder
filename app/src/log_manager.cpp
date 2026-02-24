@@ -14,7 +14,7 @@
 namespace {
 
 std::map<QtMsgType, QColor> TYPE_COLOR = {
-    {QtWarningMsg, Qt::yellow},
+    {QtWarningMsg, QColorConstants::Svg::orange},
     {QtCriticalMsg, Qt::red},
     {QtFatalMsg, Qt::red},
 };

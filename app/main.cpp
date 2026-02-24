@@ -6,6 +6,7 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    app.setWindowIcon(QIcon(":/tool_logo.png"));
 
     //QApplication::setStyle(QStyleFactory::create("Fusion"));
 

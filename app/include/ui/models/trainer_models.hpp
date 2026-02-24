@@ -54,6 +54,7 @@ public:
 private:
     inline static const QString RANDOM_STATE = "random_state";
     inline static const QString MODEL = "model";
+    inline static const QString MODEL_UI = "model_type";
     inline static const QString HIDDEN_LAYER_SIZES = "hidden_layer_sizes";
 
     Model m_model;
